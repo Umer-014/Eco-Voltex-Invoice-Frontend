@@ -16,14 +16,18 @@ This is the frontend for the **Invoice Management System**, built with **React.j
 ## Installation & Setup
 ### 1. Clone the Repository
 ```sh
-git clone https://github.com/your-username/invoice-management.git
-cd invoice-management/frontend
+git clone https://github.com/Umer-014/Eco-Voltex-Invoice-Frontend
+cd Eco-Voltex-Invoice-Frontend
 ```
 
 
 ### 2. Available Scripts
 
 In the project directory, you can run:
+```sh
+npm i
+```
+
 ```sh
 npm start
 ```
