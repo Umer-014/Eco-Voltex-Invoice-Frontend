@@ -1,0 +1,84 @@
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+    color: #333;
+  }
+  
+  .container {
+    max-width: 900px;
+    margin: 40px auto; 
+    padding: 40px;
+    background-color: gray;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  h1 {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .invoices-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .invoice-card {
+    background-color: #d0d3d4  ; /* #d0d3d4*/
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .total-invoices {
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px; /* Adjust size if needed */
+    margin: 16px 0; /* Space around the text */
+    color: #333; /* Optional: Adjust the color */
+  }
+  
+  .search-filters {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 16px;
+  }
+  
+  .search-filters select,
+  .search-filters input {
+    background-color: white;
+    width: 20%;
+    padding: 8px;
+    font-size: 14px;
+    margin: 0 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+.print-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 10px; /* Space between buttons */
+}
+
+.print-button-container button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.print-button-container button:hover {
+  background-color: #45a049;
+}
