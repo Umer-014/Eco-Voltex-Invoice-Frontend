@@ -18,6 +18,7 @@ This is the frontend for the **Invoice Management System**, built with **React.j
 ```sh
 git clone https://github.com/your-username/invoice-management.git
 cd invoice-management/frontend
+```
 
 
 ## Available Scripts
