@@ -62,23 +62,36 @@ body {
     border-radius: 4px;
   }
 
-.print-button-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  gap: 10px; /* Space between buttons */
-}
-
-.print-button-container button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.print-button-container button:hover {
-  background-color: #45a049;
-}
+  .print-button-container {
+    display: flex;
+    flex-wrap: wrap; /* Allows buttons to wrap */
+    justify-content: center;
+    margin-top: 20px;
+    gap: 10px; /* Space between buttons */
+    max-width: 400px; /* Ensures two buttons per row */
+  }
+  
+  .print-button-container button {
+    flex: 1 1 45%; /* Ensures two buttons per row */
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    min-width: 150px;
+    text-align: center;
+  }
+  
+  /* Assign different colors based on button order */
+  .print-button-container button:nth-child(1) { background-color: #007bff; } /* Blue for Download */
+  .print-button-container button:nth-child(2) { background-color: #17a2b8; } /* Cyan for Show Details */
+  .print-button-container button:nth-child(3) { background-color: #dc3545; } /* Red for Delete */
+  .print-button-container button:nth-child(4) { background-color: #28a745; } /* Green for Update */
+  
+  /* Hover effects */
+  .print-button-container button:nth-child(1):hover { background-color: #0056b3; } /* Darker Blue */
+  .print-button-container button:nth-child(2):hover { background-color: #138496; } /* Darker Cyan */
+  .print-button-container button:nth-child(3):hover { background-color: #c82333; } /* Darker Red */
+  .print-button-container button:nth-child(4):hover { background-color: #218838; } /* Darker Green */
+  
