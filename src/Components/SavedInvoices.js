@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
 import "./SavedInvoices.css";
 
 const SavedInvoices = () => {
   const [invoices, setInvoices] = useState([]);
-  const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [searchCategory, setSearchCategory] = useState("");
   const [searchInvoiceNumber, setSearchInvoiceNumber] = useState("");
   const [searchPhone, setSearchEmail] = useState("");
@@ -16,10 +15,6 @@ const SavedInvoices = () => {
     fetchInvoices();
   }, []);
 
-  useEffect(() => {
-    filterInvoices();
-  }, [searchCategory, searchInvoiceNumber, searchPhone, invoices, sortByDate]);
-
   const fetchInvoices = async () => {
     try {
       const response = await axios.get("http://localhost:4000/api/invoices/");
@@ -29,29 +24,28 @@ const SavedInvoices = () => {
     }
   };
 
-  const filterInvoices = () => {
-    const filtered = invoices.filter((invoice) => {
-      const matchesCategory =
-        searchCategory === "All Categories" || searchCategory === ""
-          ? true
-          : invoice.category.toLowerCase() === searchCategory.toLowerCase();
-      const matchesInvoiceNumber = searchInvoiceNumber
-        ? invoice.invoiceNumber?.toString().includes(searchInvoiceNumber)
-        : true;
-      const matchesPhone = searchPhone
-        ? invoice.clientEmail.toLowerCase().includes(searchPhone.toLowerCase())
-        : true;
-      return matchesCategory && matchesInvoiceNumber && matchesPhone;
-    });
+  const filteredInvoices = useMemo(() => {
+    return invoices
+      .filter((invoice) => {
+        const matchesCategory =
+          searchCategory === "All Categories" || searchCategory === ""
+            ? true
+            : invoice.category.toLowerCase() === searchCategory.toLowerCase();
+        const matchesInvoiceNumber = searchInvoiceNumber
+          ? invoice.invoiceNumber?.toString().includes(searchInvoiceNumber)
+          : true;
+        const matchesPhone = searchPhone
+          ? invoice.clientEmail.toLowerCase().includes(searchPhone.toLowerCase())
+          : true;
+        return matchesCategory && matchesInvoiceNumber && matchesPhone;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return sortByDate === "asc" ? dateA - dateB : dateB - dateA;
+      });
+  }, [searchCategory, searchInvoiceNumber, searchPhone, invoices, sortByDate]);
 
-    const sortedInvoices = filtered.sort((a, b) => {
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      return sortByDate === "asc" ? dateA - dateB : dateB - dateA;
-    });
-
-    setFilteredInvoices(sortedInvoices);
-  };
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
     if (discount === 0) return totalPrice;
@@ -242,8 +236,25 @@ const SavedInvoices = () => {
       invoice.createdAt
     ).toLocaleDateString()}</p>
     <p><strong>Payment Mode:</strong> ${invoice.paymentOption}</p>
+
+    <!-- Only show this section if remainingAmount is zero -->
+${
+  invoice.remainingAmount === 0
+    ? `
+  <div>
+    <p><strong>Paid Date:</strong> ${new Date(
+      invoice.paidDate
+    ).toLocaleDateString()}</p>
+    <p><strong>Reference Number:</strong> ${invoice.referenceNumber}</p>
+  </div>
+`
+    : ""
+}
+
   </div>
 </div>
+
+
 
 
   
@@ -300,7 +311,7 @@ const SavedInvoices = () => {
       </tr>
       <tr>
         <td class="label">Amount Paid</td>
-        <td class="value">£${invoice.advance}</td>
+        <td class="value">£${invoice.paidAmount}</td>
       </tr>
       <tr>
         <td class="label due-row">Amount Due</td>
@@ -386,6 +397,34 @@ const SavedInvoices = () => {
     }
   };
 
+  function updatePayment(invoiceId, remainingAmount) {
+    const paidAmount = parseFloat(prompt("Enter amount paid:"));
+    if (isNaN(paidAmount) || paidAmount <= 0) {
+      alert("Invalid amount entered.");
+      return;
+    }
+  
+    let referenceNumber = null;
+    let paidDate = null;
+  
+    if (paidAmount >= remainingAmount) {
+      referenceNumber = prompt("Enter payment reference number:");
+      paidDate = prompt("Enter payment date (YYYY-MM-DD):");
+    }
+  
+    fetch(`http://localhost:4000/api/invoices/${invoiceId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paidAmount, referenceNumber, paidDate }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        alert(data.message);
+        window.location.reload(); // Reloads the page after a successful update
+      })
+      .catch((error) => console.error("Error updating payment:", error));
+  }
+  
   return (
     <div className="container">
       <h2>Saved Invoices</h2>
@@ -457,7 +496,7 @@ const SavedInvoices = () => {
               </h3>
               <h3>Discount: {invoice.discount}%</h3>
               <h3>Total Bill: £{invoice.totalPrice}</h3>
-              <h3>Advance: £{invoice.advance}</h3>
+              <h3>Paid Amount: £{invoice.paidAmount}</h3>
               <h3>Remaining Balance £{invoice.remainingAmount}</h3>
 
               <div className="print-button-container">
@@ -472,6 +511,13 @@ const SavedInvoices = () => {
                   style={{ backgroundColor: "red", color: "white" }}
                 >
                   Delete Invoice
+                </button>
+                <button
+                  onClick={() =>
+                    updatePayment(invoice.invoiceNumber, invoice.remainingAmount)
+                  }
+                >
+                  Update
                 </button>
               </div>
             </div>
