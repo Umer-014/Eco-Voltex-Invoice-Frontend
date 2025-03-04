@@ -11,7 +11,7 @@ const InvoiceCreate = () => {
     paymentOption: "",
     category: "",
     services: [{ name: "", price: "", quantity: "" }],
-    discount: "",
+    paidAmount: "",
     date: new Date().toISOString().split("T")[0],
     advance: "",
   });
@@ -59,7 +59,7 @@ const InvoiceCreate = () => {
           paymentOption: "",
           category: "",
           services: [{ name: "", price: "", quantity: "" }],
-          discount: "",
+          paidAmount: "",
           date: new Date().toISOString().split("T")[0], // Ensure date is always sent
         });
       }
@@ -135,9 +135,9 @@ const InvoiceCreate = () => {
           <div className="service-input">
             <input
               type="number"
-              name="advance"
-              placeholder="Advance Payment"
-              value={form.advance || ""} // Add 'advance' field to the state
+              name="paidAmount"
+              placeholder="Intial Paid Amount"
+              value={form.paidAmount || ""} // Add 'advance' field to the state
               onChange={handleInputChange}
               min="0"
               required
