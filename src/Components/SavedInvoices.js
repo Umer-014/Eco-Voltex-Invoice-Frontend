@@ -35,7 +35,9 @@ const SavedInvoices = () => {
           ? invoice.invoiceNumber?.toString().includes(searchInvoiceNumber)
           : true;
         const matchesPhone = searchPhone
-          ? invoice.clientEmail.toLowerCase().includes(searchPhone.toLowerCase())
+          ? invoice.clientEmail
+              .toLowerCase()
+              .includes(searchPhone.toLowerCase())
           : true;
         return matchesCategory && matchesInvoiceNumber && matchesPhone;
       })
@@ -45,7 +47,6 @@ const SavedInvoices = () => {
         return sortByDate === "asc" ? dateA - dateB : dateB - dateA;
       });
   }, [searchCategory, searchInvoiceNumber, searchPhone, invoices, sortByDate]);
-
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
     if (discount === 0) return totalPrice;
@@ -315,7 +316,7 @@ ${
       </tr>
       <tr>
         <td class="label due-row">Amount Due</td>
-        <td class="value due-row">£${invoice.remainingAmount}</td>
+        <td class="value due-row">£${invoice.remainingAmount.toFixed(2)}</td>
       </tr>
     </tbody>
   </table>
@@ -403,15 +404,15 @@ ${
       alert("Invalid amount entered.");
       return;
     }
-  
+
     let referenceNumber = null;
     let paidDate = null;
-  
+
     if (paidAmount >= remainingAmount) {
       referenceNumber = prompt("Enter payment reference number:");
       paidDate = prompt("Enter payment date (YYYY-MM-DD):");
     }
-  
+
     fetch(`http://localhost:4000/api/invoices/${invoiceId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -424,7 +425,7 @@ ${
       })
       .catch((error) => console.error("Error updating payment:", error));
   }
-  
+
   return (
     <div className="container">
       <h2>Saved Invoices</h2>
@@ -497,7 +498,7 @@ ${
               <h3>Discount: {invoice.discount}%</h3>
               <h3>Total Bill: £{invoice.totalPrice}</h3>
               <h3>Paid Amount: £{invoice.paidAmount}</h3>
-              <h3>Remaining Balance £{invoice.remainingAmount}</h3>
+              <h3>Remaining Balance £{invoice.remainingAmount.toFixed(2)}</h3>
 
               <div className="print-button-container">
                 <button onClick={() => downloadInvoice(invoice._id)}>
@@ -514,7 +515,10 @@ ${
                 </button>
                 <button
                   onClick={() =>
-                    updatePayment(invoice.invoiceNumber, invoice.remainingAmount)
+                    updatePayment(
+                      invoice.invoiceNumber,
+                      invoice.remainingAmount
+                    )
                   }
                 >
                   Update
