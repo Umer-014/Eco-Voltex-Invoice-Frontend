@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
-import html2pdf from "html2pdf.js";
 import "./SavedInvoices.css";
 
 const SavedInvoices = () => {
@@ -349,34 +348,19 @@ ${
     );
     if (!invoice) return;
 
-    const htmlContent = getInvoiceHtml(invoice, true); // Full HTML string
-    const firstName = invoice.clientName.split(" ")[0];
-    const filename = `${firstName} - ${invoice.invoiceNumber}.pdf`;
+    const htmlContent = getInvoiceHtml(invoice, true);
+    const printWindow = window.open("", "", "width=800,height=900");
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
 
-    const invoiceElement = document.createElement("div");
-    invoiceElement.innerHTML = htmlContent;
-    invoiceElement.style.width = "210mm";
-    invoiceElement.style.maxWidth = "210mm";
-    invoiceElement.style.overflow = "hidden";
-    document.body.appendChild(invoiceElement);
-
-    const opt = {
-      margin: 0,
-      filename: filename,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 0.8, useCORS: true },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all"] },
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.onafterprint = () => {
+        printWindow.close();
+      };
     };
+};
 
-    html2pdf()
-      .from(invoiceElement)
-      .set(opt)
-      .save()
-      .finally(() => {
-        document.body.removeChild(invoiceElement);
-      });
-  };
 
   const deleteInvoice = async (invoiceNumber) => {
     const confirmDelete = window.confirm(
