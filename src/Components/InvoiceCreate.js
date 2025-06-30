@@ -92,7 +92,7 @@ const InvoiceCreate = () => {
               placeholder="Phone Number"
               value={form.clientPhone}
               onChange={handleInputChange}
-              required
+              optional
             />
           </div>
 

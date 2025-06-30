@@ -48,9 +48,20 @@ const SavedInvoices = () => {
   }, [searchCategory, searchInvoiceNumber, searchPhone, invoices, sortByDate]);
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
-    if (discount === 0) return totalPrice;
-    return (totalPrice / (1 - discount / 100)).toFixed(2);
+    // Convert to numbers and provide fallback of 0
+    const numericTotal = Number(totalPrice) || 0;
+    const numericDiscount = Number(discount) || 0;
+  
+    // If discount is 0 (or not provided), just return the total
+    if (numericDiscount === 0) {
+      return numericTotal.toFixed(2);
+    }
+  
+    // Otherwise, calculate the price before discount
+    const newTotal = numericTotal / (1 - numericDiscount / 100);
+    return newTotal.toFixed(2);
   };
+  
 
   const getInvoiceHtml = (invoice, forPdf = false) => {
     return `
@@ -228,7 +239,8 @@ const SavedInvoices = () => {
       invoice.clientAddress || "Address not provided"
     }</p>
     <p> ${invoice.postCode}</p>
-    <p><strong>Phone No:</strong> ${invoice.clientPhone}</p>
+    ${invoice.clientPhone ? `<p><strong>Phone No:</strong> ${invoice.clientPhone}</p>` : ""}
+    
   </div>
   <div style="text-align: right; flex: 1; align-items: flex-start;">
     <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
@@ -278,9 +290,9 @@ ${
           <tr>
             <td>${index + 1}</td>
             <td>${service.name}</td>
-            <td>£${service.price.toFixed(2)}</td>
+            <td>£${(Number(service.price) || 0).toFixed(2)}</td>
             <td>${service.quantity}</td>
-            <td>£${(service.quantity * service.price).toFixed(2)}</td>
+            <td>£${(Number(service.quantity) * Number(service.price) || 0).toFixed(2)}</td>
           </tr>
         `
         )
@@ -307,11 +319,11 @@ ${
       </tr>
       <tr>
         <td class="label total-row">Total</td>
-        <td class="value total-row">£${invoice.totalPrice}</td>
+        <td class="value total-row">£${invoice.totalPrice.toFixed(2)}</td>
       </tr>
       <tr>
         <td class="label">Amount Paid</td>
-        <td class="value">£${invoice.paidAmount}</td>
+        <td class="value">£${invoice.paidAmount.toFixed(2)}</td>
       </tr>
       <tr>
         <td class="label due-row">Amount Due</td>
@@ -359,8 +371,7 @@ ${
         printWindow.close();
       };
     };
-};
-
+  };
 
   const deleteInvoice = async (invoiceNumber) => {
     const confirmDelete = window.confirm(
@@ -461,7 +472,9 @@ ${
                 Created Date: {new Date(invoice.createdAt).toLocaleDateString()}
               </h3>
               <h3>Client Name: {invoice.clientName}</h3>
-              <h3>Client Phone No: {invoice.clientPhone}</h3>
+              {invoice.clientPhone && (
+                <h3>Client Phone No: {invoice.clientPhone}</h3>
+              )}
               <h3>Category: {invoice.category}</h3>
               <h3>Payment Mode: {invoice.paymentOption}</h3>
               <h4>Services:</h4>
@@ -479,10 +492,17 @@ ${
                   invoice.discount
                 )}
               </h3>
-              <h3>Discount: {invoice.discount}%</h3>
-              <h3>Total Bill: £{invoice.totalPrice}</h3>
-              <h3>Paid Amount: £{invoice.paidAmount}</h3>
-              <h3>Remaining Balance £{invoice.remainingAmount.toFixed(2)}</h3>
+              <h3>Discount: {(Number(invoice.discount) || 0).toFixed(2)}%</h3>
+              <h3>
+                Total Bill: £{(Number(invoice.totalPrice) || 0).toFixed(2)}
+              </h3>
+              <h3>
+                Paid Amount: £{(Number(invoice.paidAmount) || 0).toFixed(2)}
+              </h3>
+              <h3>
+                Remaining Balance £
+                {(Number(invoice.remainingAmount) || 0).toFixed(2)}
+              </h3>
 
               <div className="print-button-container">
                 <button onClick={() => downloadInvoice(invoice._id)}>
