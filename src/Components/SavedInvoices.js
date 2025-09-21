@@ -6,8 +6,9 @@ const SavedInvoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [searchCategory, setSearchCategory] = useState("");
   const [searchInvoiceNumber, setSearchInvoiceNumber] = useState("");
-  const [searchPhone, setSearchEmail] = useState("");
-  const [sortByDate, setSortByDate] = useState("desc");
+  const [searchName, setSearchName] = useState("");
+  const [selectedDate, setSelectedDate] = useState(""); // string from input type="date"
+
   const pdfContentRef = useRef(null);
 
   useEffect(() => {
@@ -24,44 +25,45 @@ const SavedInvoices = () => {
   };
 
   const filteredInvoices = useMemo(() => {
-    return invoices
-      .filter((invoice) => {
-        const matchesCategory =
-          searchCategory === "All Categories" || searchCategory === ""
-            ? true
-            : invoice.category.toLowerCase() === searchCategory.toLowerCase();
-        const matchesInvoiceNumber = searchInvoiceNumber
-          ? invoice.invoiceNumber?.toString().includes(searchInvoiceNumber)
-          : true;
-        const matchesPhone = searchPhone
-          ? invoice.clientEmail
-              .toLowerCase()
-              .includes(searchPhone.toLowerCase())
-          : true;
-        return matchesCategory && matchesInvoiceNumber && matchesPhone;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.createdAt);
-        const dateB = new Date(b.createdAt);
-        return sortByDate === "asc" ? dateA - dateB : dateB - dateA;
-      });
-  }, [searchCategory, searchInvoiceNumber, searchPhone, invoices, sortByDate]);
+    return invoices.filter((invoice) => {
+      const matchesCategory =
+        searchCategory === "All Categories" || searchCategory === ""
+          ? true
+          : invoice.category?.toLowerCase() === searchCategory.toLowerCase();
+
+      const matchesInvoiceNumber = searchInvoiceNumber
+        ? invoice.invoiceNumber?.toString().includes(searchInvoiceNumber)
+        : true;
+
+      const matchesName = searchName
+        ? invoice.clientName?.toLowerCase().includes(searchName.toLowerCase())
+        : true;
+
+      const matchesDate = selectedDate
+        ? new Date(invoice.createdAt).toLocaleDateString() ===
+          new Date(selectedDate).toLocaleDateString()
+        : true;
+
+      return (
+        matchesCategory && matchesInvoiceNumber && matchesName && matchesDate
+      );
+    });
+  }, [searchCategory, searchInvoiceNumber, searchName, selectedDate, invoices]);
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
     // Convert to numbers and provide fallback of 0
     const numericTotal = Number(totalPrice) || 0;
     const numericDiscount = Number(discount) || 0;
-  
+
     // If discount is 0 (or not provided), just return the total
     if (numericDiscount === 0) {
       return numericTotal.toFixed(2);
     }
-  
+
     // Otherwise, calculate the price before discount
     const newTotal = numericTotal / (1 - numericDiscount / 100);
     return newTotal.toFixed(2);
   };
-  
 
   const getInvoiceHtml = (invoice, forPdf = false) => {
     return `
@@ -215,8 +217,8 @@ const SavedInvoices = () => {
           <div class="header">
   <h1>Eco Voltex Ltd</h1>
   <p>Powering the Future with Sustainable Solutions</p>
-  <p><a href="https://eco-voltex.vercel.app/" target="_blank">www.ecovoltex.uo.uk</a></p>
-  <p>9A Oak Road, Romford, RM30PH</p>
+  <p><a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.uo.uk</a></p>
+  <p>5-7 Vine Street, Uxbridgeb London, UB81QE, United Kingdom</p>
   <p><strong>Phone:</strong> +44 7930 558824 | +44 7947 767758</p>
 </div>
   
@@ -239,7 +241,11 @@ const SavedInvoices = () => {
       invoice.clientAddress || "Address not provided"
     }</p>
     <p> ${invoice.postCode}</p>
-    ${invoice.clientPhone ? `<p><strong>Phone No:</strong> ${invoice.clientPhone}</p>` : ""}
+    ${
+      invoice.clientPhone
+        ? `<p><strong>Phone No:</strong> ${invoice.clientPhone}</p>`
+        : ""
+    }
     
   </div>
   <div style="text-align: right; flex: 1; align-items: flex-start;">
@@ -292,7 +298,9 @@ ${
             <td>${service.name}</td>
             <td>£${(Number(service.price) || 0).toFixed(2)}</td>
             <td>${service.quantity}</td>
-            <td>£${(Number(service.quantity) * Number(service.price) || 0).toFixed(2)}</td>
+            <td>£${(
+              Number(service.quantity) * Number(service.price) || 0
+            ).toFixed(2)}</td>
           </tr>
         `
         )
@@ -373,26 +381,6 @@ ${
     };
   };
 
-  const deleteInvoice = async (invoiceNumber) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete invoice ${invoiceNumber}?`
-    );
-
-    if (confirmDelete) {
-      try {
-        await axios.delete(
-          `http://localhost:4000/api/invoices/${invoiceNumber}`
-        );
-        alert("Invoice deleted successfully!");
-        // Refresh the invoice list after deletion
-        fetchInvoices();
-      } catch (error) {
-        console.error("Error deleting invoice:", error);
-        alert("Failed to delete invoice");
-      }
-    }
-  };
-
   function updatePayment(invoiceId, remainingAmount) {
     const paidAmount = parseFloat(prompt("Enter amount paid:"));
     if (isNaN(paidAmount) || paidAmount <= 0) {
@@ -424,9 +412,7 @@ ${
   return (
     <div className="container">
       <h2>Saved Invoices</h2>
-      <p className="total-invoices">
-        Total Invoices: {filteredInvoices.length}
-      </p>
+
       <div className="search-filters">
         <select
           value={searchCategory}
@@ -437,26 +423,28 @@ ${
           <option value="Industrial">Industrial</option>
           <option value="Domestic">Domestic</option>
         </select>
+
         <input
           type="text"
           placeholder="Search by Invoice Number"
           value={searchInvoiceNumber}
           onChange={(e) => setSearchInvoiceNumber(e.target.value)}
         />
+
         <input
           type="text"
-          placeholder="Search by Phone Number"
-          value={searchPhone}
-          onChange={(e) => setSearchEmail(e.target.value)}
+          placeholder="Search by Client Name"
+          value={searchName}
+          onChange={(e) => setSearchName(e.target.value)}
         />
-        <select
-          value={sortByDate}
-          onChange={(e) => setSortByDate(e.target.value)}
-        >
-          <option value="desc">Newest First</option>
-          <option value="asc">Oldest First</option>
-        </select>
+
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+        />
       </div>
+
       {filteredInvoices.length === 0 ? (
         <p className="no-invoices">No invoices found.</p>
       ) : (
@@ -511,12 +499,7 @@ ${
                 <button onClick={() => printInvoice(invoice._id)}>
                   Show details
                 </button>
-                <button
-                  onClick={() => deleteInvoice(invoice.invoiceNumber)}
-                  style={{ backgroundColor: "red", color: "white" }}
-                >
-                  Delete Invoice
-                </button>
+
                 <button
                   onClick={() =>
                     updatePayment(

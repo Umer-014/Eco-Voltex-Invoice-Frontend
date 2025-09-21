@@ -1,13 +1,14 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import Main from './Components/Main'; // Importing Main.js file
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import Main from './Components/Main';
 
-const App = () => {
+export default function App() {
   return (
-    <NavigationContainer>
-      <Main /> {/* Calling the Main.js file */}
-    </NavigationContainer>
+    <BrowserRouter>
+      <AuthProvider>
+        <Main />
+      </AuthProvider>
+    </BrowserRouter>
   );
-};
-
-export default App;
+}
