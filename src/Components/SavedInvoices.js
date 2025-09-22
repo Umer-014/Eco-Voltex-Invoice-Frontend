@@ -295,7 +295,10 @@ ${
           (service, index) => `
           <tr>
             <td>${index + 1}</td>
-            <td>${service.name}</td>
+            <td>
+  <div style="white-space: pre-wrap;">${service.name}</div>
+</td>
+
             <td>£${(Number(service.price) || 0).toFixed(2)}</td>
             <td>${service.quantity}</td>
             <td>£${(
@@ -417,6 +420,29 @@ ${
         />
       </div>
 
+      {/* Clear Filters button on next line */}
+      <div style={{ marginTop: "12px", textAlign: "center" }}>
+        <button
+          type="button"
+          onClick={() => {
+            setSearchCategory("All Categories");
+            setSearchInvoiceNumber("");
+            setSearchName("");
+            setSelectedDate("");
+          }}
+          style={{
+            padding: "8px 16px",
+            background: "white",
+            color: "black",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Clear Filters
+        </button>
+      </div>
+
       {filteredInvoices.length === 0 ? (
         <p className="no-invoices">No invoices found.</p>
       ) : (
@@ -441,10 +467,13 @@ ${
               <ul>
                 {invoice.services.map((service) => (
                   <li key={service._id}>
-                    {service.name} - £{service.price} (Qty: {service.quantity})
+                    <div style={{ whiteSpace: "pre-wrap" }}>{service.name}</div>
+                    – £{(Number(service.price) || 0).toFixed(2)} (Qty:{" "}
+                    {service.quantity})
                   </li>
                 ))}
               </ul>
+
               <h3>
                 Total Services: £
                 {calculateTotalBeforeDiscount(
@@ -471,8 +500,6 @@ ${
                 <button onClick={() => printInvoice(invoice._id)}>
                   Show details
                 </button>
-
-                
               </div>
             </div>
           ))}

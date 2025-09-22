@@ -163,15 +163,17 @@ const InvoiceCreate = () => {
         {form.services.map((service, index) => (
           <div className="service-group" key={index}>
             <div className="service-input">
-              <input
-                type="text"
+              <textarea
                 name="name"
                 placeholder="Service Name"
                 value={service.name}
                 onChange={(e) => handleServiceChange(index, e)}
+                rows={3} // number of visible lines
+                style={{ width: "85%", resize: "vertical" }} // let user expand
                 required
               />
             </div>
+
             <div className="service-input">
               <input
                 type="number"

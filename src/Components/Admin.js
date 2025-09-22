@@ -22,6 +22,15 @@ export default function Admin() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [paidDate, setPaidDate] = useState("");
 
+  // inside your Admin component state section:
+  const [visibleCount, setVisibleCount] = useState(5);
+
+  const [showOnlyUnpaid, setShowOnlyUnpaid] = useState(false);
+
+  // state for drawer
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [unpaidInvoicesList, setUnpaidInvoicesList] = useState([]);
+
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
@@ -35,8 +44,6 @@ export default function Admin() {
     };
     fetchInvoices();
   }, []);
-
-
 
   // stats
   const totalInvoices = invoices.length;
@@ -58,14 +65,16 @@ export default function Admin() {
     const dateMatch = selectedDate
       ? new Date(inv.createdAt).toLocaleDateString("en-CA") === selectedDate
       : true;
-    return nameMatch && dateMatch;
+
+    const unpaidMatch = showOnlyUnpaid ? inv.remainingAmount > 0 : true;
+    return nameMatch && dateMatch && unpaidMatch;
   });
 
   // show only last 5 if no filters
   const displayedInvoices =
     searchQuery || selectedDate
       ? filteredInvoices
-      : filteredInvoices.slice(-5).reverse();
+      : filteredInvoices.slice(-visibleCount).reverse();
 
   // Open edit modal - fetch fresh invoice by invoiceNumber
   const openEdit = async (invoiceNumber) => {
@@ -260,7 +269,15 @@ export default function Admin() {
             <h3>Total Revenue</h3>
             <p style={statStyle}>£ {TotalRevenue.toLocaleString()}</p>
           </div>
-          <div style={cardStyle}>
+          <div
+            style={{ ...cardStyle, cursor: "pointer" }}
+            onClick={() => {
+              // collect unpaid invoices
+              const unpaid = invoices.filter((inv) => inv.remainingAmount > 0);
+              setUnpaidInvoicesList(unpaid);
+              setShowDrawer(true);
+            }}
+          >
             <h3>Unpaid Invoices</h3>
             <p style={statStyle}>{unpaidCount}</p>
           </div>
@@ -353,7 +370,7 @@ export default function Admin() {
 
                   <td style={bodyCell}>
                     <button
-                      style={{...actionBtn, background:"blue"}}
+                      style={{ ...actionBtn, background: "blue" }}
                       onClick={() => {
                         setPaymentInvoiceId(inv.invoiceNumber);
                         setRemainingAmount(inv.remainingAmount);
@@ -381,6 +398,41 @@ export default function Admin() {
               ))}
             </tbody>
           </table>
+        )}
+        {/* Only show the buttons when there are no filters applied */}
+        {!searchQuery && !selectedDate && invoices.length > 5 && (
+          <div style={{ marginTop: "16px", textAlign: "center" }}>
+            {visibleCount < invoices.length && (
+              <button
+                onClick={() => setVisibleCount((prev) => prev + 5)}
+                style={{
+                  padding: "8px 12px",
+                  background: "#00D100",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  marginRight: "8px",
+                }}
+              >
+                Show More
+              </button>
+            )}
+            {visibleCount > 5 && (
+              <button
+                onClick={() => setVisibleCount(5)}
+                style={{
+                  padding: "8px 12px",
+                  background: "#ccc",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Show Less
+              </button>
+            )}
+          </div>
         )}
 
         {/* Edit Modal */}
@@ -569,6 +621,71 @@ export default function Admin() {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+        {/* Drawer overlay */}
+        {showDrawer && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              background: "rgba(0,0,0,0.4)",
+              zIndex: 9999,
+            }}
+            onClick={() => setShowDrawer(false)} // close when clicking overlay
+          >
+            {/* Drawer panel */}
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                height: "100%",
+                width: "320px",
+                background: "#fff",
+                boxShadow: "-2px 0 8px rgba(0,0,0,0.1)",
+                padding: "16px",
+                overflowY: "auto",
+              }}
+              onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside panel
+            >
+              <h3 style={{ marginTop: 0 }}>Unpaid Invoices</h3>
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {unpaidInvoicesList.map((inv) => (
+                  <li
+                    key={inv._id}
+                    style={{
+                      padding: "8px",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    <strong>#{inv.invoiceNumber}</strong> — {inv.clientName}
+                    <br />
+                    <span style={{ fontSize: "12px", color: "#555" }}>
+                      Remaining: {Number(inv.remainingAmount).toFixed(2)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                style={{
+                  marginTop: "16px",
+                  width: "100%",
+                  padding: "8px",
+                  background: "#00D100",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowDrawer(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         )}

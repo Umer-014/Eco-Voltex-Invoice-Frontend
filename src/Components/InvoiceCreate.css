@@ -87,6 +87,14 @@ button:active {
   flex: 1;
   min-width: 200px;
 }
+.service-input textarea {
+  width: 100%;
+  padding: 6px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
 
 .service-input input {
   padding: 12px;
