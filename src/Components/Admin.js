@@ -65,7 +65,7 @@ export default function Admin() {
   const displayedInvoices =
     searchQuery || selectedDate
       ? filteredInvoices
-      : filteredInvoices.slice(0, 5);
+      : filteredInvoices.slice(-5).reverse();
 
   // Open edit modal - fetch fresh invoice by invoiceNumber
   const openEdit = async (invoiceNumber) => {
