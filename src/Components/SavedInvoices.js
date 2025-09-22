@@ -381,34 +381,6 @@ ${
     };
   };
 
-  function updatePayment(invoiceId, remainingAmount) {
-    const paidAmount = parseFloat(prompt("Enter amount paid:"));
-    if (isNaN(paidAmount) || paidAmount <= 0) {
-      alert("Invalid amount entered.");
-      return;
-    }
-
-    let referenceNumber = null;
-    let paidDate = null;
-
-    if (paidAmount >= remainingAmount) {
-      referenceNumber = prompt("Enter payment reference number:");
-      paidDate = prompt("Enter payment date (YYYY-MM-DD):");
-    }
-
-    fetch(`http://localhost:4000/api/invoices/${invoiceId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paidAmount, referenceNumber, paidDate }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        alert(data.message);
-        window.location.reload(); // Reloads the page after a successful update
-      })
-      .catch((error) => console.error("Error updating payment:", error));
-  }
-
   return (
     <div className="container">
       <h2>Saved Invoices</h2>
@@ -500,16 +472,7 @@ ${
                   Show details
                 </button>
 
-                <button
-                  onClick={() =>
-                    updatePayment(
-                      invoice.invoiceNumber,
-                      invoice.remainingAmount
-                    )
-                  }
-                >
-                  Update
-                </button>
+                
               </div>
             </div>
           ))}

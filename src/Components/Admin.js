@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 export default function Admin() {
   const { user, logout } = useAuth();
-  const [secret, setSecret] = useState("");
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(true);
 
@@ -14,6 +13,14 @@ export default function Admin() {
   const [selectedDate, setSelectedDate] = useState("");
   const [editInvoice, setEditInvoice] = useState(null); // invoice object being edited
   const [saving, setSaving] = useState(false);
+
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentInvoiceId, setPaymentInvoiceId] = useState(null);
+  const [remainingAmount, setRemainingAmount] = useState(0);
+
+  const [paidAmount, setPaidAmount] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
+  const [paidDate, setPaidDate] = useState("");
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -29,14 +36,7 @@ export default function Admin() {
     fetchInvoices();
   }, []);
 
-  const loadSecret = async () => {
-    try {
-      const r = await api.get("/api/admin/secret");
-      setSecret(r.data.secret);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+
 
   // stats
   const totalInvoices = invoices.length;
@@ -114,6 +114,39 @@ export default function Admin() {
       const services = s.services.filter((_, i) => i !== idx);
       return { ...s, services };
     });
+
+  function closePaymentForm() {
+    setShowPaymentForm(false);
+    setPaymentInvoiceId(null);
+    setPaidAmount("");
+    setReferenceNumber("");
+    setPaidDate("");
+  }
+
+  // keep submitPayment the same
+  function submitPayment() {
+    if (isNaN(parseFloat(paidAmount)) || parseFloat(paidAmount) <= 0) {
+      alert("Invalid amount entered");
+      return;
+    }
+
+    fetch(`http://localhost:4000/api/invoices/${paymentInvoiceId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paidAmount: parseFloat(paidAmount),
+        referenceNumber: referenceNumber || null,
+        paidDate: paidDate || null,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        alert(data.message || "Payment updated successfully");
+        window.location.reload();
+      })
+      .catch((err) => console.error("Error updating payment:", err))
+      .finally(() => closePaymentForm()); // now works
+  }
 
   // Save edited invoice to backend (by invoiceNumber)
   const saveEdit = async () => {
@@ -233,21 +266,6 @@ export default function Admin() {
           </div>
         </div>
 
-        <button
-          onClick={loadSecret}
-          style={{
-            background: "#00D100",
-            border: "none",
-            padding: "8px 16px",
-            color: "white",
-            borderRadius: "6px",
-            cursor: "pointer",
-          }}
-        >
-          Test protected API
-        </button>
-        {secret && <p style={{ marginTop: "12px" }}>{secret}</p>}
-
         {/* Filters */}
         <div
           style={{
@@ -332,13 +350,26 @@ export default function Admin() {
                   <td style={bodyCell}>
                     {new Date(inv.createdAt).toLocaleDateString()}
                   </td>
+
                   <td style={bodyCell}>
+                    <button
+                      style={{...actionBtn, background:"blue"}}
+                      onClick={() => {
+                        setPaymentInvoiceId(inv.invoiceNumber);
+                        setRemainingAmount(inv.remainingAmount);
+                        setShowPaymentForm(true);
+                      }}
+                    >
+                      Update Payment
+                    </button>
+
                     <button
                       style={actionBtn}
                       onClick={() => openEdit(inv.invoiceNumber)}
                     >
                       Edit
                     </button>
+
                     <button
                       style={{ ...actionBtn, background: "#ef4444" }}
                       onClick={() => deleteInvoice(inv.invoiceNumber)}
@@ -494,6 +525,49 @@ export default function Admin() {
                     {saving ? "Saving…" : "Save"}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {showPaymentForm && (
+          <div style={modalOverlay}>
+            <div style={modal}>
+              <h3>Update Payment for Invoice {paymentInvoiceId}</h3>
+              <label>Amount Paid:</label>
+              <input
+                type="number"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value)}
+              />
+
+              {parseFloat(paidAmount) >= remainingAmount && (
+                <>
+                  <label>Reference Number:</label>
+                  <input
+                    type="text"
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                  />
+
+                  <label>Paid Date:</label>
+                  <input
+                    type="date"
+                    value={paidDate}
+                    onChange={(e) => setPaidDate(e.target.value)}
+                  />
+                </>
+              )}
+
+              <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+                <button onClick={submitPayment} style={actionBtn}>
+                  Submit
+                </button>
+                <button
+                  onClick={closePaymentForm}
+                  style={{ ...actionBtn, background: "#ccc" }}
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
