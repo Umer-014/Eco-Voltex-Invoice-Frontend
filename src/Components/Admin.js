@@ -2,6 +2,7 @@
 import { useAuth } from "../context/AuthContext";
 import api from "../lib/lib";
 import { useEffect, useState } from "react";
+import logo from "../assets/logo.jpg";
 
 export default function Admin() {
   const { user, logout } = useAuth();
@@ -89,6 +90,7 @@ export default function Admin() {
         postCode: inv.postCode || "",
         paymentOption: inv.paymentOption || "",
         category: inv.category || "",
+        issueDate: inv.createdAt || "",
         services: inv.services?.map((s) => ({
           name: s.name || "",
           price: s.price != null ? String(s.price) : "",
@@ -138,23 +140,36 @@ export default function Admin() {
       alert("Invalid amount entered");
       return;
     }
+    if (!paymentInvoiceId) {
+      alert("No invoice selected for payment update");
+      return;
+    }
 
-    fetch(`http://localhost:4000/api/invoices/${paymentInvoiceId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        paidAmount: parseFloat(paidAmount),
-        referenceNumber: referenceNumber || null,
-        paidDate: paidDate || null,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        alert(data.message || "Payment updated successfully");
-        window.location.reload();
+    const payload = {
+      paidAmount: parseFloat(paidAmount),
+      referenceNumber: referenceNumber || null,
+      paidDate: paidDate || null,
+    };
+
+    // Use the api wrapper already used elsewhere and update local state
+    // Call the payment endpoint which expects invoiceNumber in the param
+    api
+      .put(`/api/invoices/${paymentInvoiceId}`, payload)
+      .then((res) => {
+        const updated = res.data;
+        // update local invoices list
+        setInvoices((prev) =>
+          prev.map((inv) =>
+            inv.invoiceNumber === updated.invoiceNumber ? updated : inv
+          )
+        );
+        alert((res.data && res.data.message) || "Payment updated successfully");
       })
-      .catch((err) => console.error("Error updating payment:", err))
-      .finally(() => closePaymentForm()); // now works
+      .catch((err) => {
+        console.error("Error updating payment:", err);
+        alert("Failed to update payment");
+      })
+      .finally(() => closePaymentForm());
   }
 
   // Save edited invoice to backend (by invoiceNumber)
@@ -210,6 +225,358 @@ export default function Admin() {
       console.error("Delete failed", err);
       alert("Failed to delete invoice");
     }
+  };
+
+  const getInvoiceHtml = (invoice, forPdf = false) => {
+    return `
+      <html>
+      <head>
+        <title>Invoice</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+          }
+          .invoice-container {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+          }
+          .header {
+            color: black;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            color: black;
+            font-size: 28px;
+          }
+          .header p {
+            margin: 5px 0;
+            font-size: 14px;
+          }
+          .payment-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border: 3px solid #ddd;
+            padding: 10px;
+          }
+          .payment-details {
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .payment-details p {
+            margin: 5px 0;
+          }
+          .logo {
+            max-width: 150px;
+            max-height: 100px;
+          }
+          .client-info, .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border: 3px solid #ddd;
+            padding: 10px;
+          }
+          .client-info p {
+            margin: 5px 0;
+          }
+          .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+          }
+          .table th, .table td {
+            border: 2px solid black;
+            padding: 10px;
+            text-align: left;
+          }
+          .table th {
+            background-color: #f4f4f4;
+          }
+          .footer {
+            color: black;
+            text-align: center;
+          }
+          .footer p:last-child {
+  font-size: 12px; /* Smaller font size */
+  color: #666; /* Optional: Slightly lighter color */
+}
+
+            /* Flexbox Container */
+  .totals-wrapper {
+    display: flex;
+    justify-content: flex-end; /* Align content to the right */
+    margin-top: 20px;
+  }
+
+  /* Table Styles */
+  .totals-table {
+    width: 50%; /* Adjust width as needed */
+    border-collapse: collapse;
+    font-size: 16px;
+    margin-left: auto; /* Push table to the right */
+  }
+
+  .totals-table td {
+    padding: 10px;
+    border: 1px solid white;
+    text-align: left;
+  }
+
+  .totals-table .label {
+    background-color: #f9f9f9;
+    text-align: left;
+    font-weight: bold;
+  }
+
+  .totals-table .value {
+    text-align: left;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .totals-table .total-row {
+    font-weight: bold;
+  }
+
+  .totals-table .due-row {
+    font-weight: bold;
+  }
+           /* Ensure colors and borders appear in print */
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .header {
+            color: black !important;
+          }
+          .table th {
+            background-color: white !important;
+          }
+          .payment-section {
+            border: 3px solid #ddd !important;
+          }
+          .footer {
+            color: black !important;
+          }
+        } 
+          
+        </style>
+      </head>
+      <body>
+        <div class="invoice-container">
+          <!-- Header Section -->
+          <div class="header">
+  <h1>Eco Voltex Ltd</h1>
+  <p>Powering the Future with Sustainable Solutions</p>
+  <p><a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.uo.uk</a></p>
+  <p>${
+    new Date(invoice.createdAt) < new Date("2025-07-01")
+      ? "9a Oak Road Romford RM3 0PH"
+      : "5-7 Vine Street, Uxbridge London, UB81QE, United Kingdom"
+  }</p>
+
+  <p><strong>Phone:</strong> +44 7930 558824</p>
+</div>
+  
+          <!-- Payment Instructions with Logo -->
+          <p><strong>Payment Instructions</strong></p>
+          <div class="payment-section">
+            <div class="payment-details">
+              <p><strong>Account Name:</strong> Eco Voltex</p>
+              <p><strong>Account Number:</strong> 00347566</p>
+              <p><strong>Sort Code:</strong> 20-19-97</p>
+            </div>
+            <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
+          </div>
+ <!-- Client Info Section -->
+<p><strong>Issue to</strong></p>
+<div class="client-info" style="display: flex; justify-content: space-between; align-items: flex-start;">
+  <div>
+    <p><strong>Name:</strong> ${invoice.clientName}</p>
+    <p><strong>Address:</strong> ${
+      invoice.clientAddress || "Address not provided"
+    }</p>
+    <p> ${invoice.postCode}</p>
+    ${
+      invoice.clientPhone
+        ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
+        : ""
+    }
+    
+  </div>
+  <div style="text-align: right; flex: 1; align-items: flex-start;">
+    <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+    <p><strong>Issued Date:</strong> ${new Date(
+      invoice.createdAt
+    ).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })}</p>
+    <p><strong>Payment Mode:</strong> ${invoice.paymentOption}</p>
+
+    <!-- Only show this section if remainingAmount is zero -->
+${
+  invoice.remainingAmount === 0
+    ? `
+  <div>
+    <p><strong>Paid Date:</strong> ${
+      invoice.paidDate && !isNaN(new Date(invoice.paidDate))
+        ? new Date(invoice.paidDate).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : new Date(invoice.createdAt).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }) // use createdAt here
+    }</p>
+    ${
+      invoice.referenceNumber
+        ? `<p><strong>Reference Number:</strong> ${invoice.referenceNumber}</p>`
+        : ""
+    }
+  </div>
+`
+    : ""
+}
+
+  </div>
+</div>
+
+
+
+
+  
+<!-- Services Table -->
+<p><strong>Services</strong></p>
+<div class="invoice-details">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Service No.</th>
+        <th>Description</th>
+        <th>Unit Price</th>
+        <th>Quantity</th>
+        <th>Line Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${invoice.services
+        .map(
+          (service, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>
+  <div style="white-space: pre-wrap;">${service.name}</div>
+</td>
+
+            <td>£${(Number(service.price) || 0).toFixed(2)}</td>
+            <td>${service.quantity}</td>
+            <td>£${(
+              Number(service.quantity) * Number(service.price) || 0
+            ).toFixed(2)}</td>
+          </tr>
+        `
+        )
+        .join("")}
+    </tbody>
+  </table>
+</div>
+
+  
+<!-- Wrapper for Flexbox -->
+<div class="totals-wrapper">
+  <table class="totals-table">
+    <tbody>
+      <tr>
+        <td class="label">Sub Total</td>
+        <td class="value">£${calculateTotalBeforeDiscount(
+          invoice.totalPrice,
+          invoice.discount
+        )}</td>
+      </tr>
+      <tr>
+        <td class="label">VAT</td>
+        <td class="value">£0.00</td>
+      </tr>
+      <tr>
+        <td class="label total-row">Total</td>
+        <td class="value total-row">£${invoice.totalPrice.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td class="label">Amount Paid</td>
+        <td class="value">£${invoice.paidAmount.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td class="label due-row">Amount Due</td>
+        <td class="value due-row">£${invoice.remainingAmount.toFixed(2)}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+          <!-- Footer Section -->
+          <div class="footer">
+  <p>THANK YOU FOR YOUR BUSINESS!</p>
+  <p>This business is not VAT registered; therefore, VAT is not applicable (0%).</p>
+</div>
+
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const calculateTotalBeforeDiscount = (totalPrice, discount) => {
+    // Convert to numbers and provide fallback of 0
+    const numericTotal = Number(totalPrice) || 0;
+    const numericDiscount = Number(discount) || 0;
+
+    // If discount is 0 (or not provided), just return the total
+    if (numericDiscount === 0) {
+      return numericTotal.toFixed(2);
+    }
+
+    // Prevent division by zero / invalid discounts
+    if (numericDiscount >= 100) {
+      return numericTotal.toFixed(2);
+    }
+
+    // Otherwise, calculate the price before discount
+    const newTotal = numericTotal / (1 - numericDiscount / 100);
+    return newTotal.toFixed(2);
+  };
+
+  const printInvoice = (invoiceId) => {
+    // accept either an _id or an invoiceNumber
+    const invoice =
+      invoices.find(
+        (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId
+      ) ||
+      filteredInvoices.find(
+        (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId
+      );
+    if (!invoice) {
+      alert("Invoice not found for printing");
+      return;
+    }
+    const printWindow = window.open("", "", "height=800,width=600");
+    printWindow.document.write(getInvoiceHtml(invoice));
+    printWindow.document.close();
   };
 
   return (
@@ -371,6 +738,12 @@ export default function Admin() {
                   <td style={bodyCell}>
                     <button
                       style={{ ...actionBtn, background: "blue" }}
+                      onClick={() => printInvoice(inv.invoiceNumber)}
+                    >
+                      Show Invoice
+                    </button>
+                    <button
+                      style={{ ...actionBtn, background: "green" }}
                       onClick={() => {
                         setPaymentInvoiceId(inv.invoiceNumber);
                         setRemainingAmount(inv.remainingAmount);
@@ -490,13 +863,13 @@ export default function Admin() {
                 />
 
                 <label>Date</label>
-                <input
-                  type="date"
-                  value={editInvoice.createdAt}
-                  onChange={(e) => setEditField("createdAt", e.target.value)}
-                />
-
-                <div>
+                <p>{new Date(editInvoice.issueDate).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric"
+                })}</p>
+                
+                  <div>
                   <label style={{ display: "block", marginTop: 8 }}>
                     Services
                   </label>
