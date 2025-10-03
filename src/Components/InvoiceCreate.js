@@ -87,9 +87,9 @@ const InvoiceCreate = () => {
 
           <div className="service-input">
             <input
-              type="tel"
+              type="text"
               name="clientPhone"
-              placeholder="Phone Number"
+              placeholder="Phone No / Email"
               value={form.clientPhone}
               onChange={handleInputChange}
               optional

@@ -218,8 +218,13 @@ const SavedInvoices = () => {
   <h1>Eco Voltex Ltd</h1>
   <p>Powering the Future with Sustainable Solutions</p>
   <p><a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.uo.uk</a></p>
-  <p>5-7 Vine Street, Uxbridgeb London, UB81QE, United Kingdom</p>
-  <p><strong>Phone:</strong> +44 7930 558824 | +44 7947 767758</p>
+  <p>${
+    new Date(invoice.createdAt) < new Date("2025-07-01")
+      ? "9a Oak Road Romford RM3 0PH"
+      : "5-7 Vine Street, Uxbridge London, UB81QE, United Kingdom"
+  }</p>
+
+  <p><strong>Phone:</strong> +44 7930 558824</p>
 </div>
   
           <!-- Payment Instructions with Logo -->
@@ -243,7 +248,7 @@ const SavedInvoices = () => {
     <p> ${invoice.postCode}</p>
     ${
       invoice.clientPhone
-        ? `<p><strong>Phone No:</strong> ${invoice.clientPhone}</p>`
+        ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
         : ""
     }
     
@@ -252,7 +257,11 @@ const SavedInvoices = () => {
     <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
     <p><strong>Issued Date:</strong> ${new Date(
       invoice.createdAt
-    ).toLocaleDateString()}</p>
+    ).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })}</p>
     <p><strong>Payment Mode:</strong> ${invoice.paymentOption}</p>
 
     <!-- Only show this section if remainingAmount is zero -->
@@ -260,10 +269,24 @@ ${
   invoice.remainingAmount === 0
     ? `
   <div>
-    <p><strong>Paid Date:</strong> ${new Date(
-      invoice.paidDate
-    ).toLocaleDateString()}</p>
-    <p><strong>Reference Number:</strong> ${invoice.referenceNumber}</p>
+    <p><strong>Paid Date:</strong> ${
+      invoice.paidDate && !isNaN(new Date(invoice.paidDate))
+        ? new Date(invoice.paidDate).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : new Date(invoice.createdAt).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }) // use createdAt here
+    }</p>
+    ${
+      invoice.referenceNumber
+        ? `<p><strong>Reference Number:</strong> ${invoice.referenceNumber}</p>`
+        : ""
+    }
   </div>
 `
     : ""
@@ -459,7 +482,7 @@ ${
               </h3>
               <h3>Client Name: {invoice.clientName}</h3>
               {invoice.clientPhone && (
-                <h3>Client Phone No: {invoice.clientPhone}</h3>
+                <h3>Phone No/Email: {invoice.clientPhone}</h3>
               )}
               <h3>Category: {invoice.category}</h3>
               <h3>Payment Mode: {invoice.paymentOption}</h3>
