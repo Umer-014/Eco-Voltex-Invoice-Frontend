@@ -151,10 +151,12 @@ const SavedInvoices = () => {
 
             /* Flexbox Container */
   .totals-wrapper {
-    display: flex;
-    justify-content: flex-end; /* Align content to the right */
-    margin-top: 20px;
-  }
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+
 
   /* Table Styles */
   .totals-table {
@@ -189,6 +191,35 @@ const SavedInvoices = () => {
   .totals-table .due-row {
     font-weight: bold;
   }
+/* Left-side logos layout */
+.left-logos {
+  display: flex;
+  flex-direction: row;      /* side by side */
+  justify-content: flex-start;
+  align-items: center;
+  gap: 25px;               /* space between logos */
+    width: 40%;               /* covers left side */
+}
+
+/* Each logo box */
+.logo-container {
+  flex: 1;      
+             /* equal width for both logos */
+  text-align: left;
+}
+
+  .logo-container img {
+  width: 120%;
+  height: 100px;
+  
+}
+  .logo-container-1 img {
+  width: 120%;
+  height: 100px;
+  
+}
+
+
            /* Ensure colors and borders appear in print */
         @media print {
           body {
@@ -338,8 +369,20 @@ ${
   
 <!-- Wrapper for Flexbox -->
 <div class="totals-wrapper">
+<div class="left-logos">
+  <div class="logo-container">
+    <img src="${require("../assets/Certification 1.jpg")}" alt="NSF Logo" />
+  </div>  
+  
+  <div class="logo-container-1">
+    <img src="${require("../assets/Certification.jpg")}" alt="UKAS Logo" />
+  </div>
+</div>
+
   <table class="totals-table">
     <tbody>
+          
+          
       <tr>
         <td class="label">Sub Total</td>
         <td class="value">£${calculateTotalBeforeDiscount(
