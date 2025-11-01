@@ -529,9 +529,7 @@ ${
 <!-- Wrapper for Flexbox -->
 <div class="totals-wrapper">
 <div class="left-logos">
-  <div class="logo-container">
-    <img src="${require("../assets/Certification 1.jpg")}" alt="NSF Logo" />
-  </div>  
+  
   
   <div class="logo-container-1">
     <img src="${require("../assets/Certification.jpg")}" alt="UKAS Logo" />
