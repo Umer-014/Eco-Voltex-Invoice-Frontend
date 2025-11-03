@@ -390,14 +390,21 @@ ${
         <td class="label">VAT</td>
         <td class="value">£0.00</td>
       </tr>
-      <tr>
+      
+      
+      ${
+  invoice.discount > 0
+    ? `<tr>
+        <td class="label">Discount</td>
+        <td class="value">£${invoice.discount.toFixed(2)}</td>
+      </tr>`
+    : ""
+} 
+    <tr>
         <td class="label total-row">Total</td>
         <td class="value total-row">£${invoice.totalPrice.toFixed(2)}</td>
       </tr>
-      <tr>
-        <td class="label">Amount Paid</td>
-        <td class="value">£${invoice.paidAmount.toFixed(2)}</td>
-      </tr>
+
       <tr>
         <td class="label due-row">Amount Due</td>
         <td class="value due-row">£${invoice.remainingAmount.toFixed(2)}</td>

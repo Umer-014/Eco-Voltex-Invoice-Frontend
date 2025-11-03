@@ -212,16 +212,15 @@ const InvoiceCreate = () => {
 
         <div className="service-group">
           <div className="service-input">
-            <select
+            <input
+              type="number"
               name="discount"
+              placeholder="Discount (£ flat)"
               value={form.discount}
               onChange={handleInputChange}
-            >
-              <option value="">Select Discount</option>
-              <option value="0">0%</option>
-              <option value="5">5%</option>
-              <option value="10">10%</option>
-            </select>
+              min="0"
+              step="0.01"
+            />
           </div>
 
           <div className="service-input">
