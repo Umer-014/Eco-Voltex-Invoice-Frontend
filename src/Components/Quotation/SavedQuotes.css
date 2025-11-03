@@ -1,0 +1,112 @@
+/* Exact style structure mirrored from SavedInvoices.css */
+
+body {
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 40px;
+  background-color: gray;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.quotes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.quote-card {
+  background-color: #d0d3d4;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.total-quotes {
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin: 16px 0;
+  color: #333;
+}
+
+.search-filters {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.search-filters select,
+.search-filters input {
+  background-color: white;
+  width: 20%;
+  padding: 8px;
+  font-size: 14px;
+  margin: 0 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Buttons row like your SavedInvoices */
+.print-button-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 10px;
+  max-width: 400px;
+}
+
+.print-button-container button {
+  flex: 1 1 45%;
+  padding: 10px 20px;
+  font-size: 16px;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 150px;
+  text-align: center;
+}
+
+/* Same color ordering */
+.print-button-container button:nth-child(1) { background-color: #007bff; } /* Download */
+.print-button-container button:nth-child(2) { background-color: #17a2b8; } /* Show details */
+.print-button-container button:nth-child(3) { background-color: #dc3545; } /* Delete */
+
+/* Hovers */
+.print-button-container button:nth-child(1):hover { background-color: #0056b3; }
+.print-button-container button:nth-child(2):hover { background-color: #138496; }
+.print-button-container button:nth-child(3):hover { background-color: #c82333; }
+@media (max-width: 600px) {
+  .quotes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-filters {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-filters select,
+  .search-filters input {
+    width: 100%;
+    margin: 0;
+  }
+}
