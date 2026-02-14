@@ -105,21 +105,21 @@ export default function Admin() {
 
   const periodInvoices = useMemo(() => {
     return invoices.filter((inv) =>
-      withinRange(inv.createdAt, periodStart, periodEnd)
+      withinRange(inv.createdAt, periodStart, periodEnd),
     );
   }, [invoices, periodStart, periodEnd]);
 
   const totalInvoices = periodInvoices.length;
   const TotalInvoiceValue = periodInvoices.reduce(
     (sum, inv) => sum + (Number(inv.totalPrice) || 0),
-    0
+    0,
   );
   const unpaidCount = periodInvoices.filter(
-    (inv) => inv.remainingAmount > 0
+    (inv) => inv.remainingAmount > 0,
   ).length;
   const TotalRevenue = periodInvoices.reduce(
     (sum, inv) => sum + (Number(inv.paidAmount) || 0),
-    0
+    0,
   );
 
   // filtering logic (search + single date + unpaid + period)
@@ -151,6 +151,8 @@ export default function Admin() {
         clientPhone: inv.clientPhone || "",
         clientAddress: inv.clientAddress || "",
         postCode: inv.postCode || "",
+        siteAddress: inv.siteAddress || "",
+        sitePostCode: inv.sitePostCode || "",
         paymentOption: inv.paymentOption || "",
         category: inv.category || "",
         issueDate: inv.createdAt || "",
@@ -219,8 +221,8 @@ export default function Admin() {
         const updated = res.data;
         setInvoices((prev) =>
           prev.map((inv) =>
-            inv.invoiceNumber === updated.invoiceNumber ? updated : inv
-          )
+            inv.invoiceNumber === updated.invoiceNumber ? updated : inv,
+          ),
         );
         alert((res.data && res.data.message) || "Payment updated successfully");
       })
@@ -239,6 +241,8 @@ export default function Admin() {
         clientName: editInvoice.clientName,
         clientPhone: editInvoice.clientPhone,
         clientAddress: editInvoice.clientAddress,
+        siteAddress: editInvoice.siteAddress || "",
+        sitePostCode: editInvoice.sitePostCode || "",
         postCode: editInvoice.postCode,
         paymentOption: editInvoice.paymentOption,
         category: editInvoice.category,
@@ -252,12 +256,12 @@ export default function Admin() {
 
       const r = await api.put(
         `/api/invoices/number/${editInvoice.invoiceNumber}`,
-        payload
+        payload,
       );
       setInvoices((prev) =>
         prev.map((inv) =>
-          inv.invoiceNumber === r.data.invoiceNumber ? r.data : inv
-        )
+          inv.invoiceNumber === r.data.invoiceNumber ? r.data : inv,
+        ),
       );
       setEditInvoice(null);
     } catch (err) {
@@ -273,7 +277,7 @@ export default function Admin() {
     try {
       await api.delete(`/api/invoices/${invoiceNumber}`);
       setInvoices((prev) =>
-        prev.filter((i) => i.invoiceNumber !== invoiceNumber)
+        prev.filter((i) => i.invoiceNumber !== invoiceNumber),
       );
     } catch (err) {
       console.error("Delete failed", err);
@@ -342,21 +346,39 @@ export default function Admin() {
           <p><strong>Issue to</strong></p>
           <div class="client-info" style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-              <p><strong>Name:</strong> ${invoice.clientName}</p>
-              <p><strong>Address:</strong> ${
-                invoice.clientAddress || "Address not provided"
-              }</p>
-              <p> ${invoice.postCode}</p>
-              ${
-                invoice.clientPhone
-                  ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
-                  : ""
-              }
-            </div>
+  <p><strong>Name:</strong> ${invoice.clientName}</p>
+  <p><strong>Address:</strong> ${
+    invoice.clientAddress || "Address not provided"
+  }</p>
+  <p>${invoice.postCode}</p>
+
+  ${
+    invoice.siteAddress || invoice.sitePostCode
+      ? `
+        <div style="margin-top: 10px;">
+          ${
+            invoice.siteAddress
+              ? `<p><strong>Site Address:</strong> ${invoice.siteAddress}</p>`
+              : ""
+          }
+          ${invoice.sitePostCode ? `<p>${invoice.sitePostCode}</p>` : ""}
+        </div>
+      `
+      : ""
+  }
+
+  ${
+    invoice.clientPhone
+      ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
+      : ""
+  }
+</div>
+
+
             <div style="text-align: right; flex: 1; align-items: flex-start;">
               <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
               <p><strong>Issued Date:</strong> ${new Date(
-                invoice.createdAt
+                invoice.createdAt,
               ).toLocaleDateString("en-GB", {
                 day: "2-digit",
                 month: "short",
@@ -418,7 +440,7 @@ export default function Admin() {
                       Number(service.quantity) * Number(service.price) || 0
                     ).toFixed(2)}</td>
                   </tr>
-                `
+                `,
                   )
                   .join("")}
               </tbody>
@@ -436,7 +458,7 @@ export default function Admin() {
                   <td class="label">Sub Total</td>
                   <td class="value">£${calculateTotalBeforeDiscount(
                     invoice.totalPrice,
-                    invoice.discount
+                    invoice.discount,
                   )}</td>
                 </tr>
                 <tr>
@@ -445,16 +467,16 @@ export default function Admin() {
                 </tr>
                 <tr>
                 ${
-  invoice.discount > 0
-    ? `<tr>
+                  invoice.discount > 0
+                    ? `<tr>
         <td class="label">Discount</td>
         <td class="value">£${invoice.discount.toFixed(2)}</td>
       </tr>`
-    : ""
-} 
+                    : ""
+                } 
                   <td class="label total-row">Total</td>
                   <td class="value total-row">£${invoice.totalPrice.toFixed(
-                    2
+                    2,
                   )}</td>
                 </tr>
                 <tr>
@@ -464,7 +486,7 @@ export default function Admin() {
                 <tr>
                   <td class="label due-row">Amount Due</td>
                   <td class="value due-row">£${invoice.remainingAmount.toFixed(
-                    2
+                    2,
                   )}</td>
                 </tr>
               </tbody>
@@ -481,7 +503,6 @@ export default function Admin() {
   };
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
-
     const newTotal = totalPrice + discount;
     return newTotal.toFixed(2);
   };
@@ -489,10 +510,10 @@ export default function Admin() {
   const printInvoice = (invoiceId) => {
     const invoice =
       invoices.find(
-        (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId
+        (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId,
       ) ||
       filteredInvoices.find(
-        (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId
+        (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId,
       );
     if (!invoice) {
       alert("Invoice not found for printing");
@@ -569,7 +590,7 @@ export default function Admin() {
             style={{ ...cardStyle, cursor: "pointer" }}
             onClick={() => {
               const unpaid = periodInvoices.filter(
-                (inv) => inv.remainingAmount > 0
+                (inv) => inv.remainingAmount > 0,
               );
               setUnpaidInvoicesList(unpaid);
               setShowDrawer(true);

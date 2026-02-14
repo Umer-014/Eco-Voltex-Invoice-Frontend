@@ -7,12 +7,15 @@ const InvoiceCreate = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [searchName, setSearchName] = useState("");
   const debounceRef = useRef(null);
+  const [showSiteAddress, setShowSiteAddress] = useState(false);
 
   const [form, setForm] = useState({
     clientName: "",
     clientPhone: "",
     clientAddress: "",
     postCode: "",
+    siteAddress: "",
+    sitePostCode: "",
     paymentOption: "",
     category: "",
     services: [{ name: "", price: "", quantity: "" }],
@@ -78,6 +81,8 @@ const InvoiceCreate = () => {
           clientName: "",
           clientPhone: "",
           clientAddress: "",
+          siteAddress: "",
+          sitePostCode: "",
           postCode: "",
           paymentOption: "",
           category: "",
@@ -259,6 +264,46 @@ const InvoiceCreate = () => {
               required
             />
           </div>
+
+          <button
+            type="button"
+             style={{
+              padding: "8px 14px",
+              border: "none",
+              cursor: "pointer",
+              background: clientType === "new" ? "#2c3e50" : "#ccc",
+              color: "#fff",
+            }}
+            onClick={() => setShowSiteAddress((prev) => !prev)}
+          >
+            Site Address
+          </button>
+
+          {showSiteAddress && (
+            <>
+              <div className="service-input">
+                <input
+                  type="text"
+                  name="siteAddress"
+                  placeholder="Site Address"
+                  value={form.siteAddress}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="service-input">
+                <input
+                  type="text"
+                  name="sitePostCode"
+                  placeholder="Site Post Code"
+                  value={form.sitePostCode}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div className="service-input">
             <select
