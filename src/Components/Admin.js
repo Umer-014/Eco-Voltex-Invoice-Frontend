@@ -444,6 +444,14 @@ export default function Admin() {
                   <td class="value">£0.00</td>
                 </tr>
                 <tr>
+                ${
+  invoice.discount > 0
+    ? `<tr>
+        <td class="label">Discount</td>
+        <td class="value">£${invoice.discount.toFixed(2)}</td>
+      </tr>`
+    : ""
+} 
                   <td class="label total-row">Total</td>
                   <td class="value total-row">£${invoice.totalPrice.toFixed(
                     2
@@ -473,11 +481,8 @@ export default function Admin() {
   };
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
-    const numericTotal = Number(totalPrice) || 0;
-    const numericDiscount = Number(discount) || 0;
-    if (numericDiscount === 0) return numericTotal.toFixed(2);
-    if (numericDiscount >= 100) return numericTotal.toFixed(2);
-    const newTotal = numericTotal / (1 - numericDiscount / 100);
+
+    const newTotal = totalPrice + discount;
     return newTotal.toFixed(2);
   };
 

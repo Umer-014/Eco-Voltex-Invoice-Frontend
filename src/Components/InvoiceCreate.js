@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import axios from "axios";
-import "./InvoiceCreate.css"; // Import the custom CSS
+import "./InvoiceCreate.css";
 
 const InvoiceCreate = () => {
+  const [clientType, setClientType] = useState("new");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchName, setSearchName] = useState("");
+  const debounceRef = useRef(null);
+
   const [form, setForm] = useState({
     clientName: "",
     clientPhone: "",
@@ -19,6 +24,24 @@ const InvoiceCreate = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+  };
+
+  // 🔎 Search Existing Client
+  const searchClient = (value) => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:4000/api/clients/search?name=${value}`,
+        );
+        setSuggestions(res.data);
+      } catch (error) {
+        console.error("Search failed");
+      }
+    }, 400);
   };
 
   const handleServiceChange = (index, e) => {
@@ -45,7 +68,7 @@ const InvoiceCreate = () => {
     try {
       const response = await axios.post(
         "http://localhost:4000/api/invoices/create",
-        form
+        form,
       );
 
       alert(response.data.message);
@@ -60,8 +83,12 @@ const InvoiceCreate = () => {
           category: "",
           services: [{ name: "", price: "", quantity: "" }],
           paidAmount: "",
-          date: new Date().toISOString().split("T")[0], // Ensure date is always sent
+          date: new Date().toISOString().split("T")[0],
         });
+
+        setClientType("new");
+        setSearchName("");
+        setSuggestions([]);
       }
     } catch (error) {
       alert("Error creating invoice");
@@ -73,6 +100,122 @@ const InvoiceCreate = () => {
       <form onSubmit={handleSubmit}>
         <h2>Create Invoice</h2>
         <h3>Client Details</h3>
+
+        {/* ✅ New / Existing Layout */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "15px",
+            marginBottom: "20px",
+            position: "relative",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setClientType("new");
+              setSuggestions([]);
+              setSearchName("");
+              setForm({
+                ...form,
+                clientName: "",
+                clientPhone: "",
+                clientAddress: "",
+                postCode: "",
+              });
+            }}
+            style={{
+              padding: "8px 14px",
+              border: "none",
+              cursor: "pointer",
+              background: clientType === "new" ? "#2c3e50" : "#ccc",
+              color: "#fff",
+            }}
+          >
+            New Client
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setClientType("existing")}
+            style={{
+              padding: "8px 14px",
+              border: "none",
+              cursor: "pointer",
+              background: clientType === "existing" ? "#2c3e50" : "#ccc",
+              color: "#fff",
+            }}
+          >
+            Existing Client
+          </button>
+
+          {/* 🔥 Right Side Search Field */}
+          {clientType === "existing" && (
+            <div style={{ position: "relative", flex: 1 }}>
+              <input
+                type="text"
+                placeholder="Search Existing Client Name..."
+                value={searchName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchName(value);
+
+                  if (value.length > 1) {
+                    searchClient(value);
+                  } else {
+                    setSuggestions([]);
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                }}
+              />
+
+              {/* Suggestions Dropdown */}
+              {suggestions.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    background: "#fff",
+                    border: "1px solid #ddd",
+                    maxHeight: "150px",
+                    overflowY: "auto",
+                    zIndex: 1000,
+                  }}
+                >
+                  {suggestions.map((client, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        padding: "8px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #eee",
+                      }}
+                      onClick={() => {
+                        setForm({
+                          ...form,
+                          clientName: client.clientName,
+                          clientPhone: client.clientPhone || "",
+                          clientAddress: client.clientAddress || "",
+                          postCode: client.postCode || "",
+                        });
+                        setSearchName(client.clientName);
+                        setSuggestions([]);
+                      }}
+                    >
+                      {client.clientName}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 🔹 Your Original Form Fields (Untouched) */}
         <div className="service-group">
           <div className="service-input">
             <input
@@ -92,7 +235,6 @@ const InvoiceCreate = () => {
               placeholder="Phone No / Email"
               value={form.clientPhone}
               onChange={handleInputChange}
-              optional
             />
           </div>
 
@@ -136,8 +278,8 @@ const InvoiceCreate = () => {
             <input
               type="number"
               name="paidAmount"
-              placeholder="Intial Paid Amount"
-              value={form.paidAmount || ""} // Add 'advance' field to the state
+              placeholder="Initial Paid Amount"
+              value={form.paidAmount || ""}
               onChange={handleInputChange}
               min="0"
               required
@@ -158,7 +300,7 @@ const InvoiceCreate = () => {
             </select>
           </div>
         </div>
-
+        {/* Services section remains EXACTLY your original logic */}
         <h3>Services</h3>
         {form.services.map((service, index) => (
           <div className="service-group" key={index}>
@@ -168,8 +310,8 @@ const InvoiceCreate = () => {
                 placeholder="Service Name"
                 value={service.name}
                 onChange={(e) => handleServiceChange(index, e)}
-                rows={3} // number of visible lines
-                style={{ width: "85%", resize: "vertical" }} // let user expand
+                rows={3}
+                style={{ width: "85%", resize: "vertical" }}
                 required
               />
             </div>
@@ -184,6 +326,7 @@ const InvoiceCreate = () => {
                 required
               />
             </div>
+
             <div className="service-input">
               <input
                 type="number"
@@ -195,6 +338,7 @@ const InvoiceCreate = () => {
                 required
               />
             </div>
+
             {form.services.length > 1 && (
               <button
                 type="button"
@@ -206,6 +350,7 @@ const InvoiceCreate = () => {
             )}
           </div>
         ))}
+
         <button type="button" className="add-service-btn" onClick={addService}>
           Add Service
         </button>
