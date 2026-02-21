@@ -6,7 +6,7 @@ import "./SavedQuotes.css";
 const sumLines = (arr = []) =>
   arr.reduce(
     (s, x) => s + (Number(x.price) || 0) * (Number(x.quantity) || 0),
-    0
+    0,
   );
 
 const computeTotals = (q) => {
@@ -71,23 +71,9 @@ const SavedQuotes = () => {
           new Date(selectedDate).toLocaleDateString()
         : true;
 
-     
-
-      return (
-        matchesCategory &&
-        matchesNumber &&
-        matchesName &&
-        matchesDate
-      );
+      return matchesCategory && matchesNumber && matchesName && matchesDate;
     });
-  }, [
-    quotes,
-    searchCategory,
-    searchQuoteNumber,
-    searchName,
-    selectedDate,
-
-  ]);
+  }, [quotes, searchCategory, searchQuoteNumber, searchName, selectedDate]);
 
   /* ----- print/preview html (same skeleton, adapted for quotes) ----- */
   const getQuoteHtml = (quote) => {
@@ -109,10 +95,10 @@ const SavedQuotes = () => {
             <td>£${(Number(s.price) || 0).toFixed(2)}</td>
             <td>${s.quantity || 0}</td>
             <td>£${((Number(s.price) || 0) * (Number(s.quantity) || 0)).toFixed(
-              2
+              2,
             )}</td>
           </tr>
-        `
+        `,
       )
       .join("");
 
@@ -125,17 +111,17 @@ const SavedQuotes = () => {
             <td>£${(Number(m.price) || 0).toFixed(2)}</td>
             <td>${m.quantity || 0}</td>
             <td>£${((Number(m.price) || 0) * (Number(m.quantity) || 0)).toFixed(
-              2
+              2,
             )}</td>
           </tr>
-        `
+        `,
       )
       .join("");
 
     const discountRow =
       discountFlat > 0
         ? `<tr><td class="label">Discount (flat)</td><td class="value">−£${discountFlat.toFixed(
-            2
+            2,
           )}</td></tr>`
         : "";
 
@@ -267,7 +253,7 @@ const SavedQuotes = () => {
       <div style="text-align:right; flex:1;">
         <p><strong>Quote Number:</strong> ${quote.quoteNumber || ""}</p>
         <p><strong>Issued Date:</strong> ${new Date(
-          quote.createdAt
+          quote.createdAt,
         ).toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
@@ -337,7 +323,7 @@ const SavedQuotes = () => {
     ${
       (quote.materials || []).length > 0
         ? `<tr><td class="label">Materials Subtotal</td><td class="value">£${materialsTotal.toFixed(
-            2
+            2,
           )}</td></tr>`
         : ""
     }
@@ -397,6 +383,126 @@ const SavedQuotes = () => {
       w.onafterprint = () => w.close();
     };
   };
+  const convertToInvoice = async (quote) => {
+    try {
+      const totals = computeTotals(quote);
+
+      // Combine services + materials
+      const combinedServices = [
+        ...(quote.services || []),
+        ...(quote.materials || []),
+      ].map((item) => ({
+        name: item.name,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+      }));
+
+      if (!combinedServices.length) {
+        alert("No services or materials to convert.");
+        return;
+      }
+
+      const invoicePayload = {
+        clientName: quote.clientName,
+        clientPhone: quote.clientPhone,
+        clientAddress: quote.clientAddress,
+        postCode: quote.postCode,
+        category: quote.category,
+        services: combinedServices,
+
+        // Optional fields
+        siteAddress: "",
+        sitePostCode: "",
+
+        paymentOption: "",
+        paidAmount: "",
+        date: new Date().toISOString().split("T")[0],
+      };
+
+      const res = await axios.post(
+        "http://localhost:4000/api/invoices/create",
+        invoicePayload,
+      );
+
+      alert(res.data.message || "Invoice created successfully");
+    } catch (error) {
+      console.error(error);
+      alert("Error converting to invoice");
+    }
+  };
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedQuote, setSelectedQuote] = useState(null);
+
+  const [invoiceForm, setInvoiceForm] = useState({
+    paidAmount: "",
+    paymentOption: "",
+  });
+
+  const openInvoiceDialog = (quote) => {
+    setSelectedQuote(quote);
+    setInvoiceForm({
+      paidAmount: "",
+      paymentOption: "",
+    });
+    setShowInvoiceModal(true);
+  };
+
+  const confirmConvertToInvoice = async () => {
+    if (!selectedQuote) return;
+
+    const paid = Number(invoiceForm.paidAmount);
+
+    if (!Number.isFinite(paid) || paid < 0) {
+      alert("Paid amount must be greater than or equal to 0.");
+      return;
+    }
+
+    if (!invoiceForm.paymentOption) {
+      alert("Please select a payment option.");
+      return;
+    }
+
+    try {
+      const combinedServices = [
+        ...(selectedQuote.services || []),
+        ...(selectedQuote.materials || []),
+      ].map((item) => ({
+        name: item.name,
+        price: Number(item.price),
+        quantity: Number(item.quantity),
+      }));
+
+      const invoicePayload = {
+        clientName: selectedQuote.clientName,
+        clientPhone: selectedQuote.clientPhone,
+        clientAddress: selectedQuote.clientAddress,
+        postCode: selectedQuote.postCode,
+        category: selectedQuote.category,
+        services: combinedServices,
+
+        siteAddress: "",
+        sitePostCode: "",
+
+        paymentOption: invoiceForm.paymentOption,
+        paidAmount: paid,
+        date: new Date().toISOString().split("T")[0],
+      };
+
+      const res = await axios.post(
+        "http://localhost:4000/api/invoices/create",
+        invoicePayload,
+      );
+
+      alert(res.data.message || "Invoice created successfully");
+
+      setShowInvoiceModal(false);
+      setSelectedQuote(null);
+    } catch (error) {
+      console.error(error);
+      alert("Error converting to invoice");
+    }
+  };
 
   const deleteQuote = async (quoteNumber) => {
     if (!window.confirm(`Delete quotation ${quoteNumber}?`)) return;
@@ -446,8 +552,6 @@ const SavedQuotes = () => {
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
         />
-
-        
       </div>
 
       {/* Clear filters button */}
@@ -459,7 +563,6 @@ const SavedQuotes = () => {
             setSearchQuoteNumber("");
             setSearchName("");
             setSelectedDate("");
-            
           }}
           style={{
             padding: "8px 16px",
@@ -474,7 +577,6 @@ const SavedQuotes = () => {
         </button>
       </div>
 
-    
       {filteredQuotes.length === 0 ? (
         <p className="no-quotes">No quotations found.</p>
       ) : (
@@ -498,7 +600,7 @@ const SavedQuotes = () => {
                 <h3>Client Name: {q.clientName}</h3>
                 {q.clientPhone && <h3>Phone No/Email: {q.clientPhone}</h3>}
                 <h3>Category: {q.category}</h3>
-                
+
                 <h4>Services:</h4>
                 <ul>
                   {(q.services || []).map((s, i) => (
@@ -551,6 +653,61 @@ const SavedQuotes = () => {
                   <button onClick={() => deleteQuote(q.quoteNumber)}>
                     Delete
                   </button>
+                  <button onClick={() => openInvoiceDialog(q)}>
+                    Convert to Invoice
+                  </button>
+                  {showInvoiceModal && (
+                    <div className="modal-overlay">
+                      <div className="modal-box">
+                        <h3>Convert to Invoice</h3>
+
+                        <div>
+                          <label>Paid Amount (£)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={invoiceForm.paidAmount}
+                            onChange={(e) =>
+                              setInvoiceForm({
+                                ...invoiceForm,
+                                paidAmount: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <label>Payment Option</label>
+                          <select
+                            value={invoiceForm.paymentOption}
+                            onChange={(e) =>
+                              setInvoiceForm({
+                                ...invoiceForm,
+                                paymentOption: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Select category</option>
+                            <option value="Residential">Residential</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Industrial">Industrial</option>
+                          </select>
+                        </div>
+
+                        <div style={{ marginTop: "15px" }}>
+                          <button onClick={confirmConvertToInvoice}>
+                            Create Invoice
+                          </button>
+                          <button
+                            style={{ marginLeft: "10px" }}
+                            onClick={() => setShowInvoiceModal(false)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );

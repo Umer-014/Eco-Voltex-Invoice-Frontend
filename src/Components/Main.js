@@ -14,7 +14,6 @@ const Main = () => (
     <nav className="navbar">
       <ul className="navbar-list">
         <li className="navbar-item"><NavLink to="/create-invoice" className="navbar-link">Create Invoice</NavLink></li>
-        <li className="navbar-item"><NavLink to="/saved-invoices" className="navbar-link">Saved Invoices</NavLink></li>
         <li className="navbar-item"><NavLink to="/admin" className="navbar-link">Login</NavLink></li>
         <li className="navbar-item"><NavLink to="/create-quote" className="navbar-link">Create Quote</NavLink></li>
         <li className="navbar-item"><NavLink to="/saved-quotes" className="navbar-link">Saved Quotes</NavLink></li>
@@ -25,7 +24,7 @@ const Main = () => (
     <div className="main-content">
       <Routes>
         <Route path="/create-invoice" element={<InvoiceCreate />} />
-        <Route path="/saved-invoices" element={<SavedInvoices />} />
+        
         <Route path="/create-quote" element={<QuoteCreate />} />
         <Route path="/saved-quotes" element={<SavedQuotes />} />
         <Route
