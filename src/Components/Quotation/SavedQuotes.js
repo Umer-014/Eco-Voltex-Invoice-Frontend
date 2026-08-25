@@ -2,7 +2,26 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import api from "../../lib/lib";
 import "./SavedQuotes.css";
 
-/* ----- helpers (flat £ discount, services + materials) ----- */
+// Shared smart keywords matching your invoice filters
+const workTypeKeywords = {
+  electrical: [
+    "electrical", "electric", "led", "lighting", "light", "strip", "wiring", "wire", 
+    "power", "supply", "socket", "switch", "circuit", "fuse", "cable", "trunking",
+    "testing", "bulb", "lamp", "volt", "amperage", "distribution", "board", "pendant",
+    "downlight", "spotlight", "dimmer", "junction", "conduit", "earthing", "isolation"
+  ],
+  cctv: [
+    "cctv", "camera", "surveillance", "security", "recorder", "nvr", 
+    "dvr", "lens", "monitor", "footage", "ip camera", "dome", "bullet", 
+    "coaxial", "ethernet", "bnc", "hdmi", "display", "ptz", "night vision"
+  ],
+  "fire alarm": [
+    "fire", "alarm", "smoke", "detector", "sensor", "call point", 
+    "siren", "panel", "heat detector", "emergency lighting", "bell", 
+    "flashing", "strobe", "sounder", "interlock", "zone", "loop"
+  ]
+};
+
 const sumLines = (arr = []) =>
   arr.reduce(
     (s, x) => s + (Number(x.price) || 0) * (Number(x.quantity) || 0),
@@ -28,10 +47,27 @@ const computeTotals = (q) => {
 
 const SavedQuotes = () => {
   const [quotes, setQuotes] = useState([]);
-  const [searchCategory, setSearchCategory] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [searchWorkType, setSearchWorkType] = useState("All Work Types");
   const [searchQuoteNumber, setSearchQuoteNumber] = useState("");
   const [searchName, setSearchName] = useState("");
-  const [selectedDate, setSelectedDate] = useState(""); // filter by createdAt
+  const [selectedDate, setSelectedDate] = useState(""); 
+  
+  // Default to the current month (e.g., "2026-08")
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  });
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedQuote, setSelectedQuote] = useState(null);
+  const [invoiceForm, setInvoiceForm] = useState({
+    paidAmount: "",
+    paymentOption: "",
+  });
 
   const pdfContentRef = useRef(null);
 
@@ -41,19 +77,31 @@ const SavedQuotes = () => {
 
   const fetchQuotes = async () => {
     try {
+      setLoading(true);
       const response = await api.get("/quotes");
       setQuotes(response.data || []);
     } catch (error) {
       console.error("Error fetching quotations:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const filteredQuotes = useMemo(() => {
     return (quotes || []).filter((q) => {
-      const matchesCategory =
-        searchCategory === "All Categories" || searchCategory === ""
-          ? true
-          : (q.category || "").toLowerCase() === searchCategory.toLowerCase();
+
+
+      // Smart Work Type Matching across services and materials
+      let matchesWorkType = true;
+      if (searchWorkType !== "All Work Types" && searchWorkType !== "") {
+        const targetKeywords = workTypeKeywords[searchWorkType.toLowerCase()] || [searchWorkType.toLowerCase()];
+        
+        const allItems = [...(q.services || []), ...(q.materials || [])];
+        matchesWorkType = allItems.some((item) => {
+          const itemText = (item.name || "").toLowerCase();
+          return targetKeywords.some((keyword) => itemText.includes(keyword));
+        });
+      }
 
       const matchesNumber = searchQuoteNumber
         ? (q.quoteNumber || "")
@@ -66,14 +114,24 @@ const SavedQuotes = () => {
         ? (q.clientName || "").toLowerCase().includes(searchName.toLowerCase())
         : true;
 
+      const matchesMonth = selectedMonth
+        ? new Date(q.createdAt).toISOString().slice(0, 7) === selectedMonth
+        : true;
+
       const matchesDate = selectedDate
         ? new Date(q.createdAt).toLocaleDateString() ===
           new Date(selectedDate).toLocaleDateString()
         : true;
 
-      return matchesCategory && matchesNumber && matchesName && matchesDate;
+      return (
+        matchesWorkType &&
+        matchesNumber &&
+        matchesName &&
+        matchesDate &&
+        matchesMonth
+      );
     });
-  }, [quotes, searchCategory, searchQuoteNumber, searchName, selectedDate]);
+  }, [quotes, searchWorkType, searchQuoteNumber, searchName, selectedDate, selectedMonth]);
 
   /* ----- print/preview html (same skeleton, adapted for quotes) ----- */
   const getQuoteHtml = (quote) => {
@@ -361,7 +419,7 @@ const SavedQuotes = () => {
 `;
   };
 
-  const printQuote = (id) => {
+ const printQuote = (id) => {
     const quote = filteredQuotes.find((q) => q._id === id);
     if (!quote) return;
     const w = window.open("", "", "width=900,height=1000");
@@ -372,82 +430,23 @@ const SavedQuotes = () => {
   const downloadQuote = (id) => {
     const quote = filteredQuotes.find((q) => q._id === id);
     if (!quote) return;
-
-    const htmlContent = getQuoteHtml(quote);
     const w = window.open("", "", "width=900,height=1000");
-    w.document.write(htmlContent);
+    w.document.write(getQuoteHtml(quote));
     w.document.close();
-
     w.onload = () => {
       w.print();
       w.onafterprint = () => w.close();
     };
   };
-  const convertToInvoice = async (quote) => {
-    try {
-      const totals = computeTotals(quote);
-
-      // Combine services + materials
-      const combinedServices = [
-        ...(quote.services || []),
-        ...(quote.materials || []),
-      ].map((item) => ({
-        name: item.name,
-        price: Number(item.price),
-        quantity: Number(item.quantity),
-      }));
-
-      if (!combinedServices.length) {
-        alert("No services or materials to convert.");
-        return;
-      }
-
-      const invoicePayload = {
-        clientName: quote.clientName,
-        clientPhone: quote.clientPhone,
-        clientAddress: quote.clientAddress,
-        postCode: quote.postCode,
-        category: quote.category,
-        services: combinedServices,
-
-        // Optional fields
-        siteAddress: "",
-        sitePostCode: "",
-
-        paymentOption: "",
-        paidAmount: "",
-        date: new Date().toISOString().split("T")[0],
-      };
-
-      const res = await api.post("/invoices", invoicePayload);
-
-      alert(res.data.message || "Invoice created successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Error converting to invoice");
-    }
-  };
-
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [selectedQuote, setSelectedQuote] = useState(null);
-
-  const [invoiceForm, setInvoiceForm] = useState({
-    paidAmount: "",
-    paymentOption: "",
-  });
 
   const openInvoiceDialog = (quote) => {
     setSelectedQuote(quote);
-    setInvoiceForm({
-      paidAmount: "",
-      paymentOption: "",
-    });
+    setInvoiceForm({ paidAmount: "", paymentOption: "" });
     setShowInvoiceModal(true);
   };
 
   const confirmConvertToInvoice = async () => {
     if (!selectedQuote) return;
-
     const paid = Number(invoiceForm.paidAmount);
 
     if (!Number.isFinite(paid) || paid < 0) {
@@ -477,19 +476,15 @@ const SavedQuotes = () => {
         postCode: selectedQuote.postCode,
         category: selectedQuote.category,
         services: combinedServices,
-
         siteAddress: "",
         sitePostCode: "",
-
         paymentOption: invoiceForm.paymentOption,
         paidAmount: paid,
         date: new Date().toISOString().split("T")[0],
       };
 
       const res = await api.post("/invoices", invoicePayload);
-
       alert(res.data.message || "Invoice created successfully");
-
       setShowInvoiceModal(false);
       setSelectedQuote(null);
     } catch (error) {
@@ -511,52 +506,56 @@ const SavedQuotes = () => {
 
   return (
     <div className="container">
-      <h2>Saved Quotations</h2>
+      <h1>Saved Quotations</h1>
 
-      {/* Filters — same layout as invoices */}
+      {/* Expanded filters layout matching SavedInvoices */}
       <div className="search-filters">
         <select
-          value={searchCategory}
-          onChange={(e) => setSearchCategory(e.target.value)}
+          value={searchWorkType}
+          onChange={(e) => setSearchWorkType(e.target.value)}
         >
-          <option value="All Categories">All Categories</option>
-          <option value="Residential">Residential</option>
-          <option value="Commercial">Commercial</option>
-          <option value="Industrial">Industrial</option>
+          <option value="All Work Types">All Work Types</option>
+          <option value="Electrical">Electrical</option>
+          <option value="CCTV">CCTV</option>
+          <option value="Fire Alarm">Fire Alarm</option>
         </select>
 
         <input
           type="text"
-          placeholder="Search by Quote Number"
+          placeholder="Quote Number"
           value={searchQuoteNumber}
           onChange={(e) => setSearchQuoteNumber(e.target.value)}
         />
 
         <input
           type="text"
-          placeholder="Search by Client Name"
+          placeholder="Client Name"
           value={searchName}
           onChange={(e) => setSearchName(e.target.value)}
         />
 
-        {/* Created/Issue Date */}
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+        />
+
         <input
           type="date"
-          title="Filter by Created Date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
         />
       </div>
 
-      {/* Clear filters button */}
-      <div style={{ marginTop: "8px", textAlign: "center" }}>
+      <div style={{ marginTop: "12px", textAlign: "center" }}>
         <button
           type="button"
           onClick={() => {
-            setSearchCategory("All Categories");
+            setSearchWorkType("All Work Types");
             setSearchQuoteNumber("");
             setSearchName("");
             setSelectedDate("");
+           
           }}
           style={{
             padding: "8px 16px",
@@ -571,148 +570,126 @@ const SavedQuotes = () => {
         </button>
       </div>
 
-      {filteredQuotes.length === 0 ? (
-        <p className="no-quotes">No quotations found.</p>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px", fontSize: "18px", color: "white" }}>
+          Loading quotations...
+        </div>
+      ) : filteredQuotes.length === 0 ? (
+        <p className="no-quotes" style={{ textAlign: "center", color: "white", marginTop: "30px" }}>
+          No quotations found.
+        </p>
       ) : (
-        <div className="quotes-grid">
-          {filteredQuotes.map((q) => {
-            const totals = computeTotals(q);
-            const showDiscount = totals.discountFlat > 0;
+        <>
+          <div className="total-quotes">
+            Showing {filteredQuotes.length} quotation(s)
+          </div>
+          <div className="quotes-grid">
+            {filteredQuotes.map((q) => {
+              const totals = computeTotals(q);
+              const showDiscount = totals.discountFlat > 0;
 
-            return (
-              <div className="quote-card" key={q._id} id={`quote-${q._id}`}>
-                <h3>Quote Number: {q.quoteNumber}</h3>
-                <h3>
-                  Created Date: {new Date(q.createdAt).toLocaleDateString()}
-                </h3>
-                <h3>
-                  Valid Until:{" "}
-                  {q.validUntil
-                    ? new Date(q.validUntil).toLocaleDateString()
-                    : "-"}
-                </h3>
-                <h3>Client Name: {q.clientName}</h3>
-                {q.clientPhone && <h3>Phone No/Email: {q.clientPhone}</h3>}
-                <h3>Category: {q.category}</h3>
+              return (
+                <div className="quote-card" key={q._id} id={`quote-${q._id}`}>
+                  <h3>Quote Number: {q.quoteNumber}</h3>
+                  <h3>Created Date: {new Date(q.createdAt).toLocaleDateString()}</h3>
+                  <h3>Valid Until: {q.validUntil ? new Date(q.validUntil).toLocaleDateString() : "-"}</h3>
+                  <h3>Client Name: {q.clientName}</h3>
+                  {q.clientPhone && <h3>Phone No/Email: {q.clientPhone}</h3>}
+                  <h3>Category: {q.category}</h3>
 
-                <h4>Services:</h4>
-                <ul>
-                  {(q.services || []).map((s, i) => (
-                    <li key={s._id || i}>
-                      <div style={{ whiteSpace: "pre-wrap" }}>{s.name}</div>
-                      {" – £"}
-                      {(Number(s.price) || 0).toFixed(2)}
-                      {" (Qty: "}
-                      {s.quantity}
-                      {")"}
-                    </li>
-                  ))}
-                </ul>
+                  <h4>Services:</h4>
+                  <ul>
+                    {(q.services || []).map((s, i) => (
+                      <li key={s._id || i}>
+                        <div style={{ whiteSpace: "pre-wrap" }}>{s.name}</div>
+                        – £{(Number(s.price) || 0).toFixed(2)} (Qty: {s.quantity})
+                      </li>
+                    ))}
+                  </ul>
 
-                {(q.materials || []).length > 0 && (
-                  <>
-                    <h4>Materials:</h4>
-                    <ul>
-                      {(q.materials || []).map((m, i) => (
-                        <li key={m._id || i}>
-                          <div style={{ whiteSpace: "pre-wrap" }}>{m.name}</div>
-                          {" – £"}
-                          {(Number(m.price) || 0).toFixed(2)}
-                          {" (Qty: "}
-                          {m.quantity}
-                          {")"}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-                <h3>Services Subtotal: £{totals.servicesTotal.toFixed(2)}</h3>
-                {(q.materials || []).length > 0 && (
-                  <h3>
-                    Materials Subtotal: £{totals.materialsTotal.toFixed(2)}
-                  </h3>
-                )}
-
-                <h3>Subtotal: £{totals.subtotal.toFixed(2)}</h3>
-                {showDiscount && (
-                  <h3>Discount (flat): −£{totals.discountFlat.toFixed(2)}</h3>
-                )}
-                <h3>Total Quote: £{totals.total.toFixed(2)}</h3>
-                <div className="print-button-container">
-                  <button onClick={() => downloadQuote(q._id)}>Download</button>
-                  <button onClick={() => printQuote(q._id)}>
-                    Show details
-                  </button>
-                  <button onClick={() => deleteQuote(q.quoteNumber)}>
-                    Delete
-                  </button>
-                  <button onClick={() => openInvoiceDialog(q)}>
-                    Convert to Invoice
-                  </button>
-                  {showInvoiceModal && (
-                    <div className="modal-overlay">
-                      <div className="modal-box">
-                        <h3>Convert to Invoice</h3>
-
-                        <div>
-                          <label>Paid Amount (£)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={invoiceForm.paidAmount}
-                            onChange={(e) =>
-                              setInvoiceForm({
-                                ...invoiceForm,
-                                paidAmount: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <label>Payment Option</label>
-                          <select
-                            value={invoiceForm.paymentOption}
-                            onChange={(e) =>
-                              setInvoiceForm({
-                                ...invoiceForm,
-                                paymentOption: e.target.value,
-                              })
-                            }
-                          >
-                            <option value="">Select category</option>
-                            <option value="Residential">Residential</option>
-                            <option value="Commercial">Commercial</option>
-                            <option value="Industrial">Industrial</option>
-                          </select>
-                        </div>
-
-                        <div style={{ marginTop: "15px" }}>
-                          <button onClick={confirmConvertToInvoice}>
-                            Create Invoice
-                          </button>
-                          <button
-                            style={{ marginLeft: "10px" }}
-                            onClick={() => setShowInvoiceModal(false)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                  {(q.materials || []).length > 0 && (
+                    <>
+                      <h4>Materials:</h4>
+                      <ul>
+                        {(q.materials || []).map((m, i) => (
+                          <li key={m._id || i}>
+                            <div style={{ whiteSpace: "pre-wrap" }}>{m.name}</div>
+                            – £{(Number(m.price) || 0).toFixed(2)} (Qty: {m.quantity})
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
+
+                  <h3>Services Subtotal: £{totals.servicesTotal.toFixed(2)}</h3>
+                  {(q.materials || []).length > 0 && (
+                    <h3>Materials Subtotal: £{totals.materialsTotal.toFixed(2)}</h3>
+                  )}
+                  <h3>Subtotal: £{totals.subtotal.toFixed(2)}</h3>
+                  {showDiscount && <h3>Discount (flat): −£{totals.discountFlat.toFixed(2)}</h3>}
+                  <h3>Total Quote: £{totals.total.toFixed(2)}</h3>
+
+                  <div className="print-button-container">
+                    <button onClick={() => downloadQuote(q._id)}>Download</button>
+                    <button onClick={() => printQuote(q._id)}>Show details</button>
+                    <button onClick={() => deleteQuote(q.quoteNumber)}>Delete</button>
+                    <button onClick={() => openInvoiceDialog(q)}>Convert to Invoice</button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {showInvoiceModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h3>Convert to Invoice</h3>
+            <div>
+              <label>Paid Amount (£)</label>
+              <input
+                type="number"
+                min="0"
+                value={invoiceForm.paidAmount}
+                onChange={(e) =>
+                  setInvoiceForm({ ...invoiceForm, paidAmount: e.target.value })
+                }
+              />
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label>Payment Option</label>
+              <select
+                value={invoiceForm.paymentOption}
+                onChange={(e) =>
+                  setInvoiceForm({ ...invoiceForm, paymentOption: e.target.value })
+                }
+              >
+                <option value="">Select category</option>
+                <option value="Residential">Residential</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Industrial">Industrial</option>
+              </select>
+            </div>
+            <div style={{ marginTop: "15px", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                onClick={confirmConvertToInvoice}
+                style={{ padding: "8px 12px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+              >
+                Create Invoice
+              </button>
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                style={{ marginLeft: "10px", padding: "8px 12px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      <div
-        ref={pdfContentRef}
-        style={{ position: "absolute", left: "-9999px" }}
-      ></div>
+      <div ref={pdfContentRef} style={{ position: "absolute", left: "-9999px" }}></div>
     </div>
   );
 };
