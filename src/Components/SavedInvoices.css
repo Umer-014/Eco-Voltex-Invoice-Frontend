@@ -1,97 +1,123 @@
 /* General Styles */
 body {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f9f9f9;
-    color: #333;
-  }
-  
-  .container {
-    max-width: 900px;
-    margin: 40px auto; 
-    padding: 40px;
-    background-color: gray;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  h1 {
-    font-size: 24px;
-    margin-bottom: 16px;
-  }
+  font-family: "Roboto", sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9;
+  color: #333;
+}
 
-  .invoices-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 16px;
-  }
-  
-  .invoice-card {
-    background-color: #d0d3d4  ; /* #d0d3d4*/
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
+.container {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 40px;
+  background-color: gray;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
 
-  .total-invoices {
-    text-align: center;
-    font-weight: bold;
-    font-size: 18px; /* Adjust size if needed */
-    margin: 16px 0; /* Space around the text */
-    color: #333; /* Optional: Adjust the color */
-  }
-  
+h1 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: white ! important;
+  text-align: center;
+}
+
+.invoices-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.invoice-card {
+  background-color: #d0d3d4;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.total-invoices {
+  text-align: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin: 16px 0;
+  color: white;
+}
+
+.search-filters {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.search-filters select,
+.search-filters input {
+  background-color: white;
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.print-button-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.print-button-container button {
+  flex: 1 1 45%;
+  padding: 10px 20px;
+  font-size: 16px;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Assign colors based on button order */
+.print-button-container button:nth-child(1) {
+  background-color: #007bff;
+} /* Blue for Download */
+.print-button-container button:nth-child(2) {
+  background-color: #17a2b8;
+} /* Cyan for Show Details */
+.print-button-container button:nth-child(3) {
+  background-color: #dc3545;
+} /* Red for Delete */
+.print-button-container button:nth-child(4) {
+  background-color: #28a745;
+} /* Green for Update */
+
+/* Hover effects */
+.print-button-container button:nth-child(1):hover {
+  background-color: #0056b3;
+}
+.print-button-container button:nth-child(2):hover {
+  background-color: #138496;
+}
+.print-button-container button:nth-child(3):hover {
+  background-color: #c82333;
+}
+.print-button-container button:nth-child(4):hover {
+  background-color: #218838;
+}
+
+/* Responsive adjustments for mobile screens */
+@media screen and (max-width: 768px) {
   .search-filters {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    gap: 16px;
+    grid-template-columns: 1fr;
   }
-  
-  .search-filters select,
-  .search-filters input {
-    background-color: white;
-    width: 20%;
-    padding: 8px;
-    font-size: 14px;
-    margin: 0 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+  .invoices-grid {
+    grid-template-columns: 1fr;
   }
-
-  .print-button-container {
-    display: flex;
-    flex-wrap: wrap; /* Allows buttons to wrap */
-    justify-content: center;
-    margin-top: 20px;
-    gap: 10px; /* Space between buttons */
-    max-width: 400px; /* Ensures two buttons per row */
-  }
-  
-  .print-button-container button {
-    flex: 1 1 45%; /* Ensures two buttons per row */
-    padding: 10px 20px;
-    font-size: 16px;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    min-width: 150px;
-    text-align: center;
-  }
-  
-  /* Assign different colors based on button order */
-  .print-button-container button:nth-child(1) { background-color: #007bff; } /* Blue for Download */
-  .print-button-container button:nth-child(2) { background-color: #17a2b8; } /* Cyan for Show Details */
-  .print-button-container button:nth-child(3) { background-color: #dc3545; } /* Red for Delete */
-  .print-button-container button:nth-child(4) { background-color: #28a745; } /* Green for Update */
-  
-  /* Hover effects */
-  .print-button-container button:nth-child(1):hover { background-color: #0056b3; } /* Darker Blue */
-  .print-button-container button:nth-child(2):hover { background-color: #138496; } /* Darker Cyan */
-  .print-button-container button:nth-child(3):hover { background-color: #c82333; } /* Darker Red */
-  .print-button-container button:nth-child(4):hover { background-color: #218838; } /* Darker Green */
-  
+}

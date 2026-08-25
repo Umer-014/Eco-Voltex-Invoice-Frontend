@@ -2,28 +2,99 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import api from "../lib/lib";
 import "./SavedInvoices.css";
 
+// Moved outside the component so it never changes and doesn't trigger ESLint warnings
+const workTypeKeywords = {
+  electrical: [
+    "electrical",
+    "electric",
+    "led",
+    "lighting",
+    "light",
+    "strip",
+    "wiring",
+    "wire",
+    "power",
+    "supply",
+    "socket",
+    "switch",
+    "circuit",
+    "fuse",
+    "cable",
+    "trunking",
+    "testing",
+    "bulb",
+    "lamp",
+    "volt",
+    "amperage",
+    "distribution",
+    "board",
+    "pendant",
+    "downlight",
+    "spotlight",
+    "dimmer",
+    "junction",
+    "conduit",
+    "earthing",
+    "isolation",
+  ],
+  cctv: [
+    "cctv",
+    "camera",
+    "surveillance",
+    "security",
+    "recorder",
+    "nvr",
+    "dvr",
+    "lens",
+    "monitor",
+    "footage",
+    "ip camera",
+    "dome",
+    "bullet",
+    "coaxial",
+    "ethernet",
+    "bnc",
+    "hdmi",
+    "display",
+    "ptz",
+    "night vision",
+  ],
+  "fire alarm": [
+    "fire",
+    "alarm",
+    "smoke",
+    "detector",
+    "sensor",
+    "call point",
+    "siren",
+    "panel",
+    "heat detector",
+    "emergency lighting",
+    "bell",
+    "flashing",
+    "strobe",
+    "sounder",
+    "interlock",
+    "zone",
+    "loop",
+  ],
+};
+
 const SavedInvoices = () => {
   const [invoices, setInvoices] = useState([]);
-  const [searchCategory, setSearchCategory] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [searchWorkType, setSearchWorkType] = useState("All Work Types");
   const [searchInvoiceNumber, setSearchInvoiceNumber] = useState("");
   const [searchName, setSearchName] = useState("");
-  const [selectedDate, setSelectedDate] = useState(""); // string from input type="date"
-  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
 
-  const availableMonths = useMemo(() => {
-    const months = [
-      ...new Set(
-        invoices.map((invoice) =>
-          new Date(invoice.createdAt).toLocaleString("default", {
-            month: "long",
-            year: "numeric",
-          }),
-        ),
-      ),
-    ];
-
-    return months.sort((a, b) => new Date(b) - new Date(a));
-  }, [invoices]);
+  // Default to the current month (e.g., "2026-08")
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  });
 
   const pdfContentRef = useRef(null);
 
@@ -33,19 +104,34 @@ const SavedInvoices = () => {
 
   const fetchInvoices = async () => {
     try {
+      setLoading(true);
       const response = await api.get("/invoices");
       setInvoices(response.data);
     } catch (error) {
       console.error("Error fetching invoices:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
-      const matchesCategory =
-        searchCategory === "All Categories" || searchCategory === ""
-          ? true
-          : invoice.category?.toLowerCase() === searchCategory.toLowerCase();
+      
+
+      // Smart Work Type Matching Logic
+      let matchesWorkType = true;
+      if (searchWorkType !== "All Work Types" && searchWorkType !== "") {
+        const targetKeywords = workTypeKeywords[
+          searchWorkType.toLowerCase()
+        ] || [searchWorkType.toLowerCase()];
+
+        matchesWorkType = invoice.services?.some((service) => {
+          const serviceText = (service.name || "").toLowerCase();
+          return targetKeywords.some((keyword) =>
+            serviceText.includes(keyword),
+          );
+        });
+      }
 
       const matchesInvoiceNumber = searchInvoiceNumber
         ? invoice.invoiceNumber?.toString().includes(searchInvoiceNumber)
@@ -66,7 +152,8 @@ const SavedInvoices = () => {
         : true;
 
       return (
-        matchesCategory &&
+
+        matchesWorkType &&
         matchesInvoiceNumber &&
         matchesName &&
         matchesDate &&
@@ -74,7 +161,8 @@ const SavedInvoices = () => {
       );
     });
   }, [
-    searchCategory,
+
+    searchWorkType,
     searchInvoiceNumber,
     searchName,
     selectedDate,
@@ -83,16 +171,11 @@ const SavedInvoices = () => {
   ]);
 
   const calculateTotalBeforeDiscount = (totalPrice, discount) => {
-    // Convert to numbers and provide fallback of 0
     const numericTotal = Number(totalPrice) || 0;
     const numericDiscount = Number(discount) || 0;
-
-    // If discount is 0 (or not provided), just return the total
     if (numericDiscount === 0) {
       return numericTotal.toFixed(2);
     }
-
-    // Otherwise, calculate the price before discount
     const newTotal = numericTotal / (1 - numericDiscount / 100);
     return newTotal.toFixed(2);
   };
@@ -458,58 +541,50 @@ ${
   };
 
   const printInvoice = (invoiceId) => {
-    const invoice = filteredInvoices.find(
-      (invoice) => invoice._id === invoiceId,
-    );
+    const invoice = filteredInvoices.find((inv) => inv._id === invoiceId);
+    if (!invoice) return;
     const printWindow = window.open("", "", "height=800,width=600");
     printWindow.document.write(getInvoiceHtml(invoice));
     printWindow.document.close();
   };
 
   const downloadInvoice = (invoiceId) => {
-    const invoice = filteredInvoices.find(
-      (invoice) => invoice._id === invoiceId,
-    );
+    const invoice = filteredInvoices.find((inv) => inv._id === invoiceId);
     if (!invoice) return;
-
-    const htmlContent = getInvoiceHtml(invoice, true);
     const printWindow = window.open("", "", "width=800,height=900");
-    printWindow.document.write(htmlContent);
+    printWindow.document.write(getInvoiceHtml(invoice));
     printWindow.document.close();
-
     printWindow.onload = () => {
       printWindow.print();
-      printWindow.onafterprint = () => {
-        printWindow.close();
-      };
+      printWindow.onafterprint = () => printWindow.close();
     };
   };
 
   return (
     <div className="container">
-      <h2>Saved Invoices</h2>
+      <h1>Saved Invoices</h1>
 
       <div className="search-filters">
         <select
-          value={searchCategory}
-          onChange={(e) => setSearchCategory(e.target.value)}
+          value={searchWorkType}
+          onChange={(e) => setSearchWorkType(e.target.value)}
         >
-          <option value="All Categories">All Categories</option>
-          <option value="Residential">Residential</option>
-          <option value="Industrial">Industrial</option>
-          <option value="Domestic">Domestic</option>
+          <option value="All Work Types">All Work Types</option>
+          <option value="Electrical">Electrical</option>
+          <option value="CCTV">CCTV</option>
+          <option value="Fire Alarm">Fire Alarm</option>
         </select>
 
         <input
           type="text"
-          placeholder="Search by Invoice Number"
+          placeholder="Invoice Number"
           value={searchInvoiceNumber}
           onChange={(e) => setSearchInvoiceNumber(e.target.value)}
         />
 
         <input
           type="text"
-          placeholder="Search by Client Name"
+          placeholder="Client Name"
           value={searchName}
           onChange={(e) => setSearchName(e.target.value)}
         />
@@ -527,12 +602,11 @@ ${
         />
       </div>
 
-      {/* Clear Filters button on next line */}
       <div style={{ marginTop: "12px", textAlign: "center" }}>
         <button
           type="button"
           onClick={() => {
-            setSearchCategory("All Categories");
+            setSearchWorkType("All Work Types");
             setSearchInvoiceNumber("");
             setSearchName("");
             setSelectedDate("");
@@ -551,68 +625,93 @@ ${
         </button>
       </div>
 
-      {filteredInvoices.length === 0 ? (
-        <p className="no-invoices">No invoices found.</p>
-      ) : (
-        <div className="invoices-grid">
-          {filteredInvoices.map((invoice) => (
-            <div
-              className="invoice-card"
-              key={invoice._id}
-              id={`invoice-${invoice._id}`}
-            >
-              <h3>Invoice Number: {invoice.invoiceNumber}</h3>
-              <h3>
-                Created Date: {new Date(invoice.createdAt).toLocaleDateString()}
-              </h3>
-              <h3>Client Name: {invoice.clientName}</h3>
-              {invoice.clientPhone && (
-                <h3>Phone No/Email: {invoice.clientPhone}</h3>
-              )}
-              <h3>Category: {invoice.category}</h3>
-              <h3>Payment Mode: {invoice.paymentOption}</h3>
-              <h4>Services:</h4>
-              <ul>
-                {invoice.services.map((service) => (
-                  <li key={service._id}>
-                    <div style={{ whiteSpace: "pre-wrap" }}>{service.name}</div>
-                    – £{(Number(service.price) || 0).toFixed(2)} (Qty:{" "}
-                    {service.quantity})
-                  </li>
-                ))}
-              </ul>
-
-              <h3>
-                Total Services: £
-                {calculateTotalBeforeDiscount(
-                  invoice.totalPrice,
-                  invoice.discount,
-                )}
-              </h3>
-              <h3>Discount: {(Number(invoice.discount) || 0).toFixed(2)}%</h3>
-              <h3>
-                Total Bill: £{(Number(invoice.totalPrice) || 0).toFixed(2)}
-              </h3>
-              <h3>
-                Paid Amount: £{(Number(invoice.paidAmount) || 0).toFixed(2)}
-              </h3>
-              <h3>
-                Remaining Balance £
-                {(Number(invoice.remainingAmount) || 0).toFixed(2)}
-              </h3>
-
-              <div className="print-button-container">
-                <button onClick={() => downloadInvoice(invoice._id)}>
-                  Download
-                </button>
-                <button onClick={() => printInvoice(invoice._id)}>
-                  Show details
-                </button>
-              </div>
-            </div>
-          ))}
+      {loading ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "40px",
+            fontSize: "18px",
+            color: "white",
+          }}
+        >
+          Loading invoices...
         </div>
+      ) : filteredInvoices.length === 0 ? (
+        <p
+          className="no-invoices"
+          style={{ textAlign: "center", color: "white", marginTop: "30px" }}
+        >
+          No invoices found.
+        </p>
+      ) : (
+        <>
+          <div className="total-invoices">
+            Showing {filteredInvoices.length} invoice(s)
+          </div>
+          <div className="invoices-grid">
+            {filteredInvoices.map((invoice) => (
+              <div
+                className="invoice-card"
+                key={invoice._id}
+                id={`invoice-${invoice._id}`}
+              >
+                <h3>Invoice Number: {invoice.invoiceNumber}</h3>
+                <h3>
+                  Created Date:{" "}
+                  {new Date(invoice.createdAt).toLocaleDateString()}
+                </h3>
+                <h3>Client Name: {invoice.clientName}</h3>
+                {invoice.clientPhone && (
+                  <h3>Phone No/Email: {invoice.clientPhone}</h3>
+                )}
+                <h3>Category: {invoice.category}</h3>
+                <h3>Payment Mode: {invoice.paymentOption}</h3>
+                <h4>Services:</h4>
+                <ul>
+                  {invoice.services.map((service) => (
+                    <li key={service._id}>
+                      <div style={{ whiteSpace: "pre-wrap" }}>
+                        {service.name}
+                      </div>
+                      – £{(Number(service.price) || 0).toFixed(2)} (Qty:{" "}
+                      {service.quantity})
+                    </li>
+                  ))}
+                </ul>
+
+                <h3>
+                  Total Services: £
+                  {calculateTotalBeforeDiscount(
+                    invoice.totalPrice,
+                    invoice.discount,
+                  )}
+                </h3>
+                <h3>Discount: {(Number(invoice.discount) || 0).toFixed(2)}%</h3>
+                <h3>
+                  Total Bill: £{(Number(invoice.totalPrice) || 0).toFixed(2)}
+                </h3>
+                <h3>
+                  Paid Amount: £{(Number(invoice.paidAmount) || 0).toFixed(2)}
+                </h3>
+                <h3>
+                  Remaining Balance £
+                  {(Number(invoice.remainingAmount) || 0).toFixed(2)}
+                </h3>
+
+                <div className="print-button-container">
+                  <button onClick={() => downloadInvoice(invoice._id)}>
+                    Download
+                  </button>
+                  <button onClick={() => printInvoice(invoice._id)}>
+                    Show details
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
+
       <div
         ref={pdfContentRef}
         style={{ position: "absolute", left: "-9999px" }}
