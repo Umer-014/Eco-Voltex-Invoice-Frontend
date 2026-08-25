@@ -176,7 +176,7 @@ const QuoteCreate = () => {
   return (
     <div
       className="container"
-      style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}
+      style={{ maxWidth: "800px", padding: "20px" }}
     >
       <form onSubmit={handleSubmit}>
         <h2>Create Quotation</h2>
