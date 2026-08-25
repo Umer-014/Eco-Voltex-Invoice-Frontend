@@ -21,20 +21,23 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           .payment-details p { margin: 5px 0; }
           .logo { max-width: 150px; max-height: 100px; }
           .client-info, .invoice-details { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
-          .client-info p { margin: 5px 0; }
+          .client-info { align-items: flex-start; gap: 20px; }
+          .client-info p { margin: 5px 0; line-height: 1.4; }
+          .client-details { flex: 0 0 calc(50% - 10px); min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+          .invoice-meta { flex: 0 0 calc(50% - 10px); min-width: 0; text-align: right; overflow-wrap: anywhere; word-break: break-word; }
           .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           .table th, .table td { border: 2px solid black; padding: 10px; text-align: left; }
           .table th { background-color: #f4f4f4; }
           .footer { color: black; text-align: center; }
           .footer p:last-child { font-size: 12px; color: #666; }
-          .totals-wrapper { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; }
-          .totals-table { width: 50%; border-collapse: collapse; font-size: 16px; margin-left: auto; }
-          .totals-table td { padding: 10px; border: 1px solid white; text-align: left; }
-          .totals-table .label { background-color: #f9f9f9; text-align: left; font-weight: bold; }
-          .totals-table .value { text-align: left; font-weight: bold; color: #333; }
+          .totals-wrapper { position: relative; min-height: 210px; margin-top: 20px; padding: 0 10px; }
+          .totals-table { position: absolute; top: 0; right: 10px; width: 28%; border-collapse: collapse; table-layout: fixed; font-size: 16px; margin: 0; }
+          .totals-table td { padding: 10px 6px; border: 1px solid white; text-align: left; }
+          .totals-table .label { width: 55%; background-color: #f9f9f9; text-align: left; font-weight: bold; }
+          .totals-table .value { width: 45%; text-align: right; font-weight: bold; color: #333; }
           .totals-table .total-row { font-weight: bold; }
           .totals-table .due-row { font-weight: bold; }
-          .left-logos { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 25px; width: 40%; }
+          .left-logos { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 25px; width: auto; }
           .logo-container { flex: 1; text-align: left; }
           .logo-container img { width: 120%; height: 100px; }
           .logo-container-1 img { width: 120%; height: 100px; }
@@ -64,36 +67,26 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
             <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
           </div>
           <p><strong>Issue to</strong></p>
-          <div class="client-info" style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-  <p><strong>Name:</strong> ${invoice.clientName}</p>
-  <p><strong>Address:</strong> ${
-    invoice.clientAddress || "Address not provided"
-  }</p>
-  <p>${invoice.postCode}</p>
-
-  ${
-    invoice.siteAddress || invoice.sitePostCode
-      ? `
-        <div style="margin-top: 10px;">
-          ${
-            invoice.siteAddress
-              ? `<p><strong>Site Address:</strong> ${invoice.siteAddress}</p>`
-              : ""
-          }
-          ${invoice.sitePostCode ? `<p>${invoice.sitePostCode}</p>` : ""}
-        </div>
-      `
-      : ""
-  }
-
-  ${
-    invoice.clientPhone
-      ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
-      : ""
-  }
-</div>
-            <div style="text-align: right; flex: 1; align-items: flex-start;">
+          <div class="client-info">
+            <div class="client-details">
+              <p><strong>Name:</strong> ${invoice.clientName}</p>
+              <p><strong>Address:</strong> ${invoice.clientAddress || "Address not provided"}</p>
+              <p>${invoice.postCode}</p>
+              ${
+                invoice.siteAddress || invoice.sitePostCode
+                  ? `<div style="margin-top: 10px;">
+                      ${invoice.siteAddress ? `<p><strong>Site Address:</strong> ${invoice.siteAddress}</p>` : ""}
+                      ${invoice.sitePostCode ? `<p>${invoice.sitePostCode}</p>` : ""}
+                    </div>`
+                  : ""
+              }
+              ${
+                invoice.clientPhone
+                  ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
+                  : ""
+              }
+            </div>
+            <div class="invoice-meta">
               <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
               <p><strong>Issued Date:</strong> ${new Date(
                 invoice.createdAt,
@@ -164,6 +157,44 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
               </tbody>
             </table>
           </div>
+          ${
+            invoice.hasMaterial &&
+            Array.isArray(invoice.materials) &&
+            invoice.materials.length > 0
+              ? `
+          <p><strong>Materials</strong></p>
+          <div class="invoice-details">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Material No.</th>
+                  <th>Description</th>
+                  <th>Unit Price</th>
+                  <th>Quantity</th>
+                  <th>Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoice.materials
+                  .map(
+                    (material, index) => `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td><div style="white-space: pre-wrap;">${material.name || ""}</div></td>
+                    <td>£${(Number(material.price) || 0).toFixed(2)}</td>
+                    <td>${material.quantity || 0}</td>
+                    <td>£${(
+                      Number(material.quantity) * Number(material.price) || 0
+                    ).toFixed(2)}</td>
+                  </tr>
+                `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>`
+              : ""
+          }
           <div class="totals-wrapper">
             <div class="left-logos">
               <div class="logo-container-1">
