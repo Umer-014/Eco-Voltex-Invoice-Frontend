@@ -1,57 +1,208 @@
 /* General Styles */
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: white;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: white;
+}
+
+.App {
+  text-align: center;
+  padding: 20px;
+}
+
+/* Heading Styles */
+h1 {
+  color: #4CAF50;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+}
+
+/* Navbar Container - Sleek Dark Theme */
+.navbar {
+  background-color: #1a1e21; /* Rich dark slate/charcoal background */
+  padding: 12px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Welcome Branding Text */
+.navbar-brand {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.welcome-text {
+  color: #cccccc;
+}
+
+.navbar-brand strong {
+  color: #00ff00; /* Highlight username in bright green */
+}
+
+/* Navbar List Items Container */
+.navbar-list {
+  display: flex;
+  align-items: center;
+  list-style-type: none;
+  padding: 4px;
+  margin: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.navbar-item {
+  margin: 0 2px;
+}
+
+.navbar-link {
+  text-decoration: none;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: block;
+}
+
+/* Hover Effect */
+.navbar-link:hover {
+  color: #000000;
+  background-color: #00e600;
+  transform: translateY(-1px);
+}
+
+/* Active Link Indicator (React Router active class) */
+.navbar-link.active {
+  color: #000000;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 230, 0, 0.3);
+}
+
+/* Specific Logout Button Styles */
+button.logout-btn {
+  background-color: #d9534f !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 18px !important;
+  font-size: 0.95rem !important;
+  font-weight: bold !important;
+  border-radius: 20px !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+  box-shadow: 0 2px 6px rgba(217, 83, 79, 0.4) !important;
+}
+
+button.logout-btn:hover {
+  background-color: #c9302c !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Mobile Hamburger Menu Button */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.hamburger-icon {
+  display: block;
+  position: relative;
+  width: 26px;
+  height: 2px;
+  background-color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.hamburger-icon::before,
+.hamburger-icon::after {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 2px;
+  background-color: #ffffff;
+  left: 0;
+  transition: transform 0.2s ease;
+}
+
+.hamburger-icon::before {
+  top: -8px;
+}
+
+.hamburger-icon::after {
+  top: 8px;
+}
+
+/* Responsive Media Query for Mobile screens */
+@media screen and (max-width: 1024px) {
+  .mobile-menu-btn {
+    display: block;
   }
-  
-  .App {
-    text-align: center;
-    padding: 20px;
+
+  .navbar-container {
+    flex-wrap: wrap;
   }
-  
-  /* Heading Styles */
-  h1 {
-    color: #4CAF50;
-    margin-bottom: 30px;
-    font-size: 2.5rem; /* Increased heading size */
-  }
-  
-  /* Navbar Styles */
-  .navbar {
-    background-color: #343a40;
-    padding: 15px 0;
-  }
-  
+
   .navbar-list {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background-color: #1a1e21;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .navbar-list.active {
     display: flex;
-    justify-content: center;
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
   }
-  
+
   .navbar-item {
-    margin: 0 30px; /* Increased space between items */
+    margin: 6px 0;
+    width: 100%;
+    text-align: center;
   }
-  
+
   .navbar-link {
-    text-decoration: none;
-    color: white;
-    font-size: 1.5rem; /* Increased navbar link text size */
-    font-weight: bold;
-    transition: color 0.3s ease, transform 0.3s ease;
-    padding: 8px 16px;
+    display: block;
+    padding: 10px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    color: #ffffff;
   }
-  
-  /* Hover Effect */
-  .navbar-link:hover {
-    color: #28a745; /* Green color on hover */
-    transform: scale(1.1); /* Slight scale effect */
-    transition: color 0.3s ease, transform 0.3s ease;
+
+  .navbar-link:hover,
+  .navbar-link.active {
+    background-color: #00e600;
+    color: #000000;
   }
-  
-  
-  
-  
+
+  .logout-btn {
+    width: 100%;
+    margin-top: 8px;
+    border-radius: 8px;
+    padding: 10px;
+  }
+}
