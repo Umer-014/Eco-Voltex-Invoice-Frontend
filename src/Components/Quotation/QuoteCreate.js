@@ -24,10 +24,71 @@ const QuoteCreate = () => {
   const [showMaterials, setShowMaterials] = useState(false);
   const [showSiteAddress, setShowSiteAddress] = useState(false);
   const [isWorkTypeOpen, setIsWorkTypeOpen] = useState(false);
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
   const workTypeRef = useRef(null);
 
+  // Address Dropdown States & Refs (Homedata API)
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [siteAddressSuggestions, setSiteAddressSuggestions] = useState([]);
+  const addressDebounceRef = useRef(null);
+
   const workTypeOptions = ["Electrical", "CCTV", "Fire Alarm"];
+
+  // 🌐 Homedata Address Lookup (Client Postcode / Typeahead)
+  const searchClientAddress = (query) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    if (!query || query.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    addressDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.homedata.co.uk/address/find?q=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              Authorization: `Api-Key ${process.env.REACT_APP_HOMEDATA_API_KEY}`,
+            },
+          },
+        );
+        const data = await res.json();
+        setAddressSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
+      } catch (err) {
+        console.error("Homedata address lookup error", err);
+      }
+    }, 400);
+  };
+
+  // 🌐 Homedata Site Address Lookup
+  const searchSiteAddress = (query) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    if (!query || query.length < 3) {
+      setSiteAddressSuggestions([]);
+      return;
+    }
+
+    addressDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.homedata.co.uk/address/find?q=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              Authorization: `Api-Key ${process.env.REACT_APP_HOMEDATA_API_KEY}`,
+            },
+          },
+        );
+        const data = await res.json();
+        setSiteAddressSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
+      } catch (err) {
+        console.error("Homedata site address lookup error", err);
+      }
+    }, 400);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -113,7 +174,7 @@ const QuoteCreate = () => {
       return;
     }
 
-    setLoading(true); // Start loading state
+    setLoading(true);
 
     try {
       const payload = {
@@ -169,15 +230,12 @@ const QuoteCreate = () => {
       console.error(err);
       alert(err?.response?.data?.message || "Error creating quotation");
     } finally {
-      setLoading(false); // Stop loading state regardless of success/error
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      className="container"
-      style={{ maxWidth: "800px", padding: "20px" }}
-    >
+    <div className="container" style={{ maxWidth: "800px", padding: "20px" }}>
       <form onSubmit={handleSubmit}>
         <h2>Create Quotation</h2>
 
@@ -219,27 +277,71 @@ const QuoteCreate = () => {
               }}
             />
           </div>
+
+          {/* Postcode Input with Homedata Dropdown Autocomplete */}
+          <div style={{ position: "relative", width: "100%", zIndex: 100 }}>
+            <input
+              type="text"
+              name="postCode"
+              placeholder="Post Code (Type postcode/street)"
+              value={form.postCode}
+              onChange={(e) => {
+                handleInputChange(e);
+                searchClientAddress(e.target.value);
+              }}
+              required
+              style={{ width: "100%", height: "46px", boxSizing: "border-box" }}
+            />
+
+            {addressSuggestions.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #ddd",
+                  borderRadius: "0 0 8px 8px",
+                  maxHeight: "180px",
+                  overflowY: "auto",
+                  zIndex: 9999,
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                }}
+              >
+                {addressSuggestions.map((item, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee",
+                      fontSize: "0.9rem",
+                      backgroundColor: "#fff",
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        clientAddress: item.address,
+                        postCode: item.postcode || prev.postCode,
+                      }));
+                      setAddressSuggestions([]);
+                    }}
+                  >
+                    {item.address}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="service-input" style={{ width: "100%" }}>
             <input
               type="text"
               name="clientAddress"
               placeholder="Client Address"
               value={form.clientAddress}
-              onChange={handleInputChange}
-              style={{
-                width: "100%",
-                padding: "10px",
-                boxSizing: "border-box",
-              }}
-              required
-            />
-          </div>
-          <div className="service-input" style={{ width: "100%" }}>
-            <input
-              type="text"
-              name="postCode"
-              placeholder="Post Code"
-              value={form.postCode}
               onChange={handleInputChange}
               style={{
                 width: "100%",
@@ -294,19 +396,67 @@ const QuoteCreate = () => {
                 }}
               />
             </div>
-            <div className="service-input" style={{ width: "100%" }}>
+
+            {/* Site Postcode Input with Homedata Dropdown Autocomplete */}
+            <div style={{ position: "relative", width: "100%", zIndex: 100 }}>
               <input
                 type="text"
                 name="sitePostCode"
                 placeholder="Site Post Code"
                 value={form.sitePostCode}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  searchSiteAddress(e.target.value);
+                }}
                 style={{
                   width: "100%",
+                  height: "46px",
                   padding: "10px",
                   boxSizing: "border-box",
                 }}
               />
+
+              {siteAddressSuggestions.length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    background: "#fff",
+                    border: "1px solid #ddd",
+                    borderRadius: "0 0 8px 8px",
+                    maxHeight: "180px",
+                    overflowY: "auto",
+                    zIndex: 9999,
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  {siteAddressSuggestions.map((item, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #eee",
+                        fontSize: "0.9rem",
+                        backgroundColor: "#fff",
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          siteAddress: item.address,
+                          sitePostCode: item.postcode || prev.sitePostCode,
+                        }));
+                        setSiteAddressSuggestions([]);
+                      }}
+                    >
+                      {item.address}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
