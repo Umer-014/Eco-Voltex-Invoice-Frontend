@@ -116,6 +116,7 @@ button:disabled {
 }
 
 .client-fields-grid {
+  overflow: visible !important;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;

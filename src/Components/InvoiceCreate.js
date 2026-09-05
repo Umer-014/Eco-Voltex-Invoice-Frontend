@@ -9,6 +9,11 @@ const InvoiceCreate = () => {
   const debounceRef = useRef(null);
   const [showSiteAddress, setShowSiteAddress] = useState(false);
 
+  // Address Dropdown States (Homedata API)
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [siteAddressSuggestions, setSiteAddressSuggestions] = useState([]);
+  const addressDebounceRef = useRef(null);
+
   const [hasMaterial, setHasMaterial] = useState(false);
 
   // Loading States
@@ -22,13 +27,13 @@ const InvoiceCreate = () => {
     postCode: "",
     siteAddress: "",
     sitePostCode: "",
-    paymentOption: "Bank Transfer", // ✅ Default to Bank Transfer
+    paymentOption: "Bank Transfer",
     category: "",
-    workType: [], // ✅ Multiple work types stored as an array
-    services: [{ name: "", price: "", quantity: 1 }], // ✅ Default quantity 1
+    workType: [],
+    services: [{ name: "", price: "", quantity: 1 }],
     hasMaterial: false,
-    materials: [{ name: "", price: "", quantity: 1 }], // ✅ Default quantity 1
-    paidAmount: 0, // ✅ Default initial amount 0
+    materials: [{ name: "", price: "", quantity: 1 }],
+    paidAmount: 0,
     date: new Date().toISOString().split("T")[0],
     discount: "",
   });
@@ -38,7 +43,6 @@ const InvoiceCreate = () => {
     setForm({ ...form, [name]: value });
   };
 
-  // ✅ Handle Multiple Work Type Checkboxes
   const handleWorkTypeChange = (e) => {
     const { value, checked } = e.target;
     let updatedWorkTypes = [...form.workType];
@@ -50,11 +54,9 @@ const InvoiceCreate = () => {
     setForm({ ...form, workType: updatedWorkTypes });
   };
 
-  // 🔎 Search Existing Client
+  // 🔎 Search Existing Client in your Database
   const searchClient = (value) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
     setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
@@ -67,6 +69,62 @@ const InvoiceCreate = () => {
         console.error("Search failed");
       } finally {
         setIsSearching(false);
+      }
+    }, 400);
+  };
+
+  // 🌐 Homedata Address Lookup (Client Postcode / Typeahead)
+  const searchClientAddress = (query) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    if (!query || query.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    addressDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.homedata.co.uk/address/find?q=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              Authorization: `Api-Key ${process.env.REACT_APP_HOMEDATA_API_KEY}`,
+            },
+          },
+        );
+        const data = await res.json();
+        setAddressSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
+      } catch (err) {
+        console.error("Homedata address lookup error", err);
+      }
+    }, 400);
+  };
+
+  // 🌐 Homedata Site Address Lookup
+  const searchSiteAddress = (query) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    if (!query || query.length < 3) {
+      setSiteAddressSuggestions([]);
+      return;
+    }
+
+    addressDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.homedata.co.uk/address/find?q=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              Authorization: `Api-Key ${process.env.REACT_APP_HOMEDATA_API_KEY}`,
+            },
+          },
+        );
+        const data = await res.json();
+        setSiteAddressSuggestions(
+          Array.isArray(data.suggestions) ? data.suggestions : [],
+        );
+      } catch (err) {
+        console.error("Homedata site address lookup error", err);
       }
     }, 400);
   };
@@ -90,7 +148,6 @@ const InvoiceCreate = () => {
     setForm({ ...form, services: updatedServices });
   };
 
-  // Material Handlers
   const handleMaterialChange = (index, e) => {
     const { name, value } = e.target;
     const updatedMaterials = [...form.materials];
@@ -121,7 +178,6 @@ const InvoiceCreate = () => {
     setIsSubmitting(true);
     try {
       const response = await api.post("/invoices", form);
-
       alert(response.data.message);
 
       if (response.status === 201) {
@@ -222,10 +278,8 @@ const InvoiceCreate = () => {
                   onChange={(e) => {
                     const value = e.target.value;
                     setSearchName(value);
-
-                    if (value.length > 1) {
-                      searchClient(value);
-                    } else {
+                    if (value.length > 1) searchClient(value);
+                    else {
                       setSuggestions([]);
                       setIsSearching(false);
                     }
@@ -298,7 +352,7 @@ const InvoiceCreate = () => {
           )}
         </div>
 
-        <div className="client-fields-grid">
+        <div className="client-fields-grid" style={{ overflow: "visible" }}>
           <input
             type="text"
             name="clientName"
@@ -316,20 +370,72 @@ const InvoiceCreate = () => {
             onChange={handleInputChange}
           />
 
+          
+
+          {/* Postcode Input with Homedata Dropdown Autocomplete */}
+          <div style={{ position: "relative", width: "100%", zIndex: 100 }}>
+            <input
+              type="text"
+              name="postCode"
+              placeholder="Post Code (Type postcode/street)"
+              value={form.postCode}
+              onChange={(e) => {
+                handleInputChange(e);
+                searchClientAddress(e.target.value);
+              }}
+              required
+              style={{ width: "100%", height: "46px", boxSizing: "border-box" }}
+            />
+
+            {addressSuggestions.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #ddd",
+                  borderRadius: "0 0 8px 8px",
+                  maxHeight: "180px",
+                  overflowY: "auto",
+                  zIndex: 9999,
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                }}
+              >
+                {addressSuggestions.map((item, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee",
+                      fontSize: "0.9rem",
+                      backgroundColor: "#fff",
+                    }}
+                    onMouseDown={(e) => e.preventDefault()} // Prevents input blur before click registers
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        clientAddress: item.address,
+                        postCode: item.postcode || prev.postCode,
+                      }));
+                      setAddressSuggestions([]);
+                    }}
+                  >
+                    {item.address}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Client Address Input */}
           <input
             type="text"
             name="clientAddress"
             placeholder="Address"
             value={form.clientAddress}
-            onChange={handleInputChange}
-            required
-          />
-
-          <input
-            type="text"
-            name="postCode"
-            placeholder="Post Code"
-            value={form.postCode}
             onChange={handleInputChange}
             required
           />
@@ -362,14 +468,66 @@ const InvoiceCreate = () => {
                 required
               />
 
-              <input
-                type="text"
-                name="sitePostCode"
-                placeholder="Site Post Code"
-                value={form.sitePostCode}
-                onChange={handleInputChange}
-                required
-              />
+              <div style={{ position: "relative", width: "100%", zIndex: 100 }}>
+                <input
+                  type="text"
+                  name="sitePostCode"
+                  placeholder="Site Post Code"
+                  value={form.sitePostCode}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    searchSiteAddress(e.target.value);
+                  }}
+                  required
+                  style={{
+                    width: "100%",
+                    height: "46px",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                {siteAddressSuggestions.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #ddd",
+                      borderRadius: "0 0 8px 8px",
+                      maxHeight: "180px",
+                      overflowY: "auto",
+                      zIndex: 9999,
+                      boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {siteAddressSuggestions.map((item, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #eee",
+                          fontSize: "0.9rem",
+                          backgroundColor: "#fff",
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            siteAddress: item.address,
+                            sitePostCode: item.postcode || prev.sitePostCode,
+                          }));
+                          setSiteAddressSuggestions([]);
+                        }}
+                      >
+                        {item.address}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -407,7 +565,7 @@ const InvoiceCreate = () => {
           </select>
         </div>
 
-        {/* ✅ Multiple Work Types Selection Checkboxes */}
+        {/* Work Type Selection */}
         <div
           style={{
             margin: "15px 0",
@@ -452,7 +610,6 @@ const InvoiceCreate = () => {
           </div>
         </div>
 
-        {/* Services section with Rich Bullet-point ready Textarea */}
         <h3>Services</h3>
         {form.services.map((service, index) => (
           <div
@@ -512,7 +669,6 @@ const InvoiceCreate = () => {
           + Add Service
         </button>
 
-        {/* Materials Toggle Section */}
         <div style={{ margin: "20px 0" }}>
           <button
             type="button"
@@ -524,7 +680,6 @@ const InvoiceCreate = () => {
           </button>
         </div>
 
-        {/* Collapsible Materials Section */}
         {hasMaterial && (
           <div
             style={{
@@ -545,7 +700,7 @@ const InvoiceCreate = () => {
                 <div className="service-name-input" style={{ flex: 2 }}>
                   <textarea
                     name="name"
-                    placeholder="Material Name / Specs (e.g., • 4mp Camera&#10;• Cat6 Cable)"
+                    placeholder="Material Name / Specs"
                     value={material.name}
                     onChange={(e) => handleMaterialChange(index, e)}
                     rows={2}
