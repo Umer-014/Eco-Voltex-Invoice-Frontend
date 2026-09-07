@@ -262,6 +262,12 @@ export default function Admin() {
           price: s.price != null ? String(s.price) : "",
           quantity: s.quantity != null ? String(s.quantity) : "1",
         })) || [{ name: "", price: "", quantity: "1" }],
+        materials: inv.materials?.map((m) => ({
+          name: m.name || "",
+          price: m.price != null ? String(m.price) : "",
+          quantity: m.quantity != null ? String(m.quantity) : "1",
+        })) || [{ name: "", price: "", quantity: "1" }],
+        hasMaterial: Boolean(inv.hasMaterial || inv.materials?.length),
         paidAmount: inv.paidAmount != null ? String(inv.paidAmount) : "0",
       });
     } catch (err) {
@@ -292,6 +298,29 @@ export default function Admin() {
     setEditInvoice((s) => {
       const services = s.services.filter((_, i) => i !== idx);
       return { ...s, services };
+    });
+
+  const setMaterialField = (index, key, value) =>
+    setEditInvoice((s) => {
+      const materials = [...(s.materials || [])];
+      materials[index] = { ...materials[index], [key]: value };
+      return { ...s, materials, hasMaterial: true };
+    });
+
+  const addMaterial = () =>
+    setEditInvoice((s) => ({
+      ...s,
+      hasMaterial: true,
+      materials: [
+        ...(s.materials || []),
+        { name: "", price: "", quantity: "1" },
+      ],
+    }));
+
+  const removeMaterial = (idx) =>
+    setEditInvoice((s) => {
+      const materials = (s.materials || []).filter((_, i) => i !== idx);
+      return { ...s, materials, hasMaterial: materials.length > 0 };
     });
 
   function closePaymentForm() {
@@ -354,6 +383,12 @@ export default function Admin() {
           price: Number(s.price) || 0,
           quantity: Number(s.quantity) || 0,
         })),
+        materials: (editInvoice.materials || []).map((m) => ({
+          name: m.name,
+          price: Number(m.price) || 0,
+          quantity: Number(m.quantity) || 0,
+        })),
+        hasMaterial: Boolean(editInvoice.hasMaterial && editInvoice.materials?.length),
         paidAmount: Number(editInvoice.paidAmount) || 0,
       };
 
@@ -868,6 +903,80 @@ export default function Admin() {
                     }}
                   >
                     Add Service
+                  </button>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginTop: 8,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Materials
+                  </label>
+                  {(editInvoice.materials || []).map((m, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginBottom: 6,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <input
+                        placeholder="name"
+                        value={m.name}
+                        onChange={(e) =>
+                          setMaterialField(i, "name", e.target.value)
+                        }
+                        style={{ ...inputStyle, flex: 2 }}
+                      />
+                      <input
+                        placeholder="price"
+                        type="number"
+                        value={m.price}
+                        onChange={(e) =>
+                          setMaterialField(i, "price", e.target.value)
+                        }
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <input
+                        placeholder="qty"
+                        type="number"
+                        value={m.quantity}
+                        onChange={(e) =>
+                          setMaterialField(i, "quantity", e.target.value)
+                        }
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <button
+                        onClick={() => removeMaterial(i)}
+                        style={{
+                          background: "#ef4444",
+                          color: "#fff",
+                          border: "none",
+                          padding: "8px 10px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addMaterial}
+                    style={{
+                      marginTop: 6,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Add Material
                   </button>
                 </div>
 
