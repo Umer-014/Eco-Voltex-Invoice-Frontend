@@ -3,7 +3,6 @@ import api from "../lib/lib";
 import { getInvoiceHtml } from "../utils/invoiceHtml";
 import "./SavedInvoices.css";
 
-// Moved outside the component so it never changes and doesn't trigger ESLint warnings
 const workTypeKeywords = {
   electrical: [
     "electrical",
@@ -89,7 +88,6 @@ const SavedInvoices = () => {
   const [searchName, setSearchName] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
 
-  // Default to the current month (e.g., "2026-08")
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -117,9 +115,6 @@ const SavedInvoices = () => {
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
-      
-
-      // Smart Work Type Matching Logic
       let matchesWorkType = true;
       if (searchWorkType !== "All Work Types" && searchWorkType !== "") {
         const targetKeywords = workTypeKeywords[
@@ -153,7 +148,6 @@ const SavedInvoices = () => {
         : true;
 
       return (
-
         matchesWorkType &&
         matchesInvoiceNumber &&
         matchesName &&
@@ -162,7 +156,6 @@ const SavedInvoices = () => {
       );
     });
   }, [
-
     searchWorkType,
     searchInvoiceNumber,
     searchName,
@@ -267,15 +260,22 @@ const SavedInvoices = () => {
       </div>
 
       {loading ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            fontSize: "18px",
-            color: "white",
-          }}
-        >
-          Loading invoices...
+        <div className="invoices-grid">
+          {[1, 2, 3, 4].map((skeletonKey) => (
+            <div className="skeleton-card" key={skeletonKey}>
+              <div className="skeleton skeleton-title"></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-text-short"></div>
+              <div className="skeleton skeleton-box"></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-text-short"></div>
+              <div className="skeleton-actions">
+                <div className="skeleton skeleton-button"></div>
+                <div className="skeleton skeleton-button"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredInvoices.length === 0 ? (
         <p
