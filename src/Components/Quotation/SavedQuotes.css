@@ -151,3 +151,43 @@ h1 {
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+
+
+/* Skeleton Loader Card Styles */
+@keyframes shimmerQuoteCard {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-text {
+  background: linear-gradient(90deg, #b0b3b4 25%, #c4c7c8 50%, #b0b3b4 75%);
+  background-size: 200% 100%;
+  animation: shimmerQuoteCard 1.5s infinite linear;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.skeleton-title {
+  height: 22px;
+  width: 60%;
+}
+
+.skeleton-line-short {
+  height: 16px;
+  width: 40%;
+}
+
+.skeleton-line-medium {
+  height: 16px;
+  width: 75%;
+}
+
+.skeleton-btn {
+  height: 38px;
+  flex: 1 1 45%;
+  min-width: 120px;
+}

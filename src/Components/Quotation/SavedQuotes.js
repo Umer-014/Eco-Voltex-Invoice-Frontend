@@ -5,21 +5,79 @@ import "./SavedQuotes.css";
 // Shared smart keywords matching your invoice filters
 const workTypeKeywords = {
   electrical: [
-    "electrical", "electric", "led", "lighting", "light", "strip", "wiring", "wire", 
-    "power", "supply", "socket", "switch", "circuit", "fuse", "cable", "trunking",
-    "testing", "bulb", "lamp", "volt", "amperage", "distribution", "board", "pendant",
-    "downlight", "spotlight", "dimmer", "junction", "conduit", "earthing", "isolation"
+    "electrical",
+    "electric",
+    "led",
+    "lighting",
+    "light",
+    "strip",
+    "wiring",
+    "wire",
+    "power",
+    "supply",
+    "socket",
+    "switch",
+    "circuit",
+    "fuse",
+    "cable",
+    "trunking",
+    "testing",
+    "bulb",
+    "lamp",
+    "volt",
+    "amperage",
+    "distribution",
+    "board",
+    "pendant",
+    "downlight",
+    "spotlight",
+    "dimmer",
+    "junction",
+    "conduit",
+    "earthing",
+    "isolation",
   ],
   cctv: [
-    "cctv", "camera", "surveillance", "security", "recorder", "nvr", 
-    "dvr", "lens", "monitor", "footage", "ip camera", "dome", "bullet", 
-    "coaxial", "ethernet", "bnc", "hdmi", "display", "ptz", "night vision"
+    "cctv",
+    "camera",
+    "surveillance",
+    "security",
+    "recorder",
+    "nvr",
+    "dvr",
+    "lens",
+    "monitor",
+    "footage",
+    "ip camera",
+    "dome",
+    "bullet",
+    "coaxial",
+    "ethernet",
+    "bnc",
+    "hdmi",
+    "display",
+    "ptz",
+    "night vision",
   ],
   "fire alarm": [
-    "fire", "alarm", "smoke", "detector", "sensor", "call point", 
-    "siren", "panel", "heat detector", "emergency lighting", "bell", 
-    "flashing", "strobe", "sounder", "interlock", "zone", "loop"
-  ]
+    "fire",
+    "alarm",
+    "smoke",
+    "detector",
+    "sensor",
+    "call point",
+    "siren",
+    "panel",
+    "heat detector",
+    "emergency lighting",
+    "bell",
+    "flashing",
+    "strobe",
+    "sounder",
+    "interlock",
+    "zone",
+    "loop",
+  ],
 };
 
 const sumLines = (arr = []) =>
@@ -52,8 +110,8 @@ const SavedQuotes = () => {
   const [searchWorkType, setSearchWorkType] = useState("All Work Types");
   const [searchQuoteNumber, setSearchQuoteNumber] = useState("");
   const [searchName, setSearchName] = useState("");
-  const [selectedDate, setSelectedDate] = useState(""); 
-  
+  const [selectedDate, setSelectedDate] = useState("");
+
   // Default to the current month (e.g., "2026-08")
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -89,13 +147,13 @@ const SavedQuotes = () => {
 
   const filteredQuotes = useMemo(() => {
     return (quotes || []).filter((q) => {
-
-
       // Smart Work Type Matching across services and materials
       let matchesWorkType = true;
       if (searchWorkType !== "All Work Types" && searchWorkType !== "") {
-        const targetKeywords = workTypeKeywords[searchWorkType.toLowerCase()] || [searchWorkType.toLowerCase()];
-        
+        const targetKeywords = workTypeKeywords[
+          searchWorkType.toLowerCase()
+        ] || [searchWorkType.toLowerCase()];
+
         const allItems = [...(q.services || []), ...(q.materials || [])];
         matchesWorkType = allItems.some((item) => {
           const itemText = (item.name || "").toLowerCase();
@@ -131,7 +189,14 @@ const SavedQuotes = () => {
         matchesMonth
       );
     });
-  }, [quotes, searchWorkType, searchQuoteNumber, searchName, selectedDate, selectedMonth]);
+  }, [
+    quotes,
+    searchWorkType,
+    searchQuoteNumber,
+    searchName,
+    selectedDate,
+    selectedMonth,
+  ]);
 
   /* ----- print/preview html (same skeleton, adapted for quotes) ----- */
   const getQuoteHtml = (quote) => {
@@ -419,7 +484,7 @@ const SavedQuotes = () => {
 `;
   };
 
- const printQuote = (id) => {
+  const printQuote = (id) => {
     const quote = filteredQuotes.find((q) => q._id === id);
     if (!quote) return;
     const w = window.open("", "", "width=900,height=1000");
@@ -555,7 +620,6 @@ const SavedQuotes = () => {
             setSearchQuoteNumber("");
             setSearchName("");
             setSelectedDate("");
-           
           }}
           style={{
             padding: "8px 16px",
@@ -571,12 +635,38 @@ const SavedQuotes = () => {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: "40px", fontSize: "18px", color: "white" }}>
-          Loading quotations...
+        <div className="quotes-grid">
+          {[1, 2, 3, 4].map((key) => (
+            <div className="quote-card" key={key}>
+              <div className="skeleton-text skeleton-title"></div>
+              <div className="skeleton-text skeleton-line-short"></div>
+              <div className="skeleton-text skeleton-line-short"></div>
+              <div className="skeleton-text skeleton-line-medium"></div>
+              <div className="skeleton-text skeleton-line-short"></div>
+
+              <div style={{ marginTop: "16px" }}>
+                <div className="skeleton-text skeleton-line-medium"></div>
+                <div className="skeleton-text skeleton-line-short"></div>
+              </div>
+
+              <div
+                className="print-button-container"
+                style={{ marginTop: "20px" }}
+              >
+                <div className="skeleton-text skeleton-btn"></div>
+                <div className="skeleton-text skeleton-btn"></div>
+                <div className="skeleton-text skeleton-btn"></div>
+                <div className="skeleton-text skeleton-btn"></div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredQuotes.length === 0 ? (
-        <p className="no-quotes" style={{ textAlign: "center", color: "white", marginTop: "30px" }}>
-          No quotations found.
+        <p
+          className="no-quotes"
+          style={{ textAlign: "center", color: "white", marginTop: "30px" }}
+        >
+          No quotations found. Please try adjusting your Filter criteria.
         </p>
       ) : (
         <>
@@ -591,8 +681,15 @@ const SavedQuotes = () => {
               return (
                 <div className="quote-card" key={q._id} id={`quote-${q._id}`}>
                   <h3>Quote Number: {q.quoteNumber}</h3>
-                  <h3>Created Date: {new Date(q.createdAt).toLocaleDateString()}</h3>
-                  <h3>Valid Until: {q.validUntil ? new Date(q.validUntil).toLocaleDateString() : "-"}</h3>
+                  <h3>
+                    Created Date: {new Date(q.createdAt).toLocaleDateString()}
+                  </h3>
+                  <h3>
+                    Valid Until:{" "}
+                    {q.validUntil
+                      ? new Date(q.validUntil).toLocaleDateString()
+                      : "-"}
+                  </h3>
                   <h3>Client Name: {q.clientName}</h3>
                   {q.clientPhone && <h3>Phone No/Email: {q.clientPhone}</h3>}
                   <h3>Category: {q.category}</h3>
@@ -601,8 +698,8 @@ const SavedQuotes = () => {
                   <ul>
                     {(q.services || []).map((s, i) => (
                       <li key={s._id || i}>
-                        <div style={{ whiteSpace: "pre-wrap" }}>{s.name}</div>
-                        – £{(Number(s.price) || 0).toFixed(2)} (Qty: {s.quantity})
+                        <div style={{ whiteSpace: "pre-wrap" }}>{s.name}</div>–
+                        £{(Number(s.price) || 0).toFixed(2)} (Qty: {s.quantity})
                       </li>
                     ))}
                   </ul>
@@ -613,8 +710,11 @@ const SavedQuotes = () => {
                       <ul>
                         {(q.materials || []).map((m, i) => (
                           <li key={m._id || i}>
-                            <div style={{ whiteSpace: "pre-wrap" }}>{m.name}</div>
-                            – £{(Number(m.price) || 0).toFixed(2)} (Qty: {m.quantity})
+                            <div style={{ whiteSpace: "pre-wrap" }}>
+                              {m.name}
+                            </div>
+                            – £{(Number(m.price) || 0).toFixed(2)} (Qty:{" "}
+                            {m.quantity})
                           </li>
                         ))}
                       </ul>
@@ -623,17 +723,29 @@ const SavedQuotes = () => {
 
                   <h3>Services Subtotal: £{totals.servicesTotal.toFixed(2)}</h3>
                   {(q.materials || []).length > 0 && (
-                    <h3>Materials Subtotal: £{totals.materialsTotal.toFixed(2)}</h3>
+                    <h3>
+                      Materials Subtotal: £{totals.materialsTotal.toFixed(2)}
+                    </h3>
                   )}
                   <h3>Subtotal: £{totals.subtotal.toFixed(2)}</h3>
-                  {showDiscount && <h3>Discount (flat): −£{totals.discountFlat.toFixed(2)}</h3>}
+                  {showDiscount && (
+                    <h3>Discount (flat): −£{totals.discountFlat.toFixed(2)}</h3>
+                  )}
                   <h3>Total Quote: £{totals.total.toFixed(2)}</h3>
 
                   <div className="print-button-container">
-                    <button onClick={() => downloadQuote(q._id)}>Download</button>
-                    <button onClick={() => printQuote(q._id)}>Show details</button>
-                    <button onClick={() => deleteQuote(q.quoteNumber)}>Delete</button>
-                    <button onClick={() => openInvoiceDialog(q)}>Convert to Invoice</button>
+                    <button onClick={() => downloadQuote(q._id)}>
+                      Download
+                    </button>
+                    <button onClick={() => printQuote(q._id)}>
+                      Show details
+                    </button>
+                    <button onClick={() => deleteQuote(q.quoteNumber)}>
+                      Delete
+                    </button>
+                    <button onClick={() => openInvoiceDialog(q)}>
+                      Convert to Invoice
+                    </button>
                   </div>
                 </div>
               );
@@ -662,7 +774,10 @@ const SavedQuotes = () => {
               <select
                 value={invoiceForm.paymentOption}
                 onChange={(e) =>
-                  setInvoiceForm({ ...invoiceForm, paymentOption: e.target.value })
+                  setInvoiceForm({
+                    ...invoiceForm,
+                    paymentOption: e.target.value,
+                  })
                 }
               >
                 <option value="">Select category</option>
@@ -671,16 +786,37 @@ const SavedQuotes = () => {
                 <option value="Industrial">Industrial</option>
               </select>
             </div>
-            <div style={{ marginTop: "15px", display: "flex", justifyContent: "flex-end" }}>
+            <div
+              style={{
+                marginTop: "15px",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={confirmConvertToInvoice}
-                style={{ padding: "8px 12px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                style={{
+                  padding: "8px 12px",
+                  background: "#28a745",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
               >
                 Create Invoice
               </button>
               <button
                 onClick={() => setShowInvoiceModal(false)}
-                style={{ marginLeft: "10px", padding: "8px 12px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                style={{
+                  marginLeft: "10px",
+                  padding: "8px 12px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
               >
                 Cancel
               </button>
@@ -689,7 +825,10 @@ const SavedQuotes = () => {
         </div>
       )}
 
-      <div ref={pdfContentRef} style={{ position: "absolute", left: "-9999px" }}></div>
+      <div
+        ref={pdfContentRef}
+        style={{ position: "absolute", left: "-9999px" }}
+      ></div>
     </div>
   );
 };
