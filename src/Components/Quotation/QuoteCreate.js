@@ -27,6 +27,27 @@ const QuoteCreate = () => {
   const [loading, setLoading] = useState(false);
   const workTypeRef = useRef(null);
 
+  // Custom Modal Dialog State
+  const [modal, setModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success", // "success" or "error"
+  });
+
+  const showModalDialog = (title, message, type = "success") => {
+    setModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const closeModalDialog = () => {
+    setModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
   // Address Dropdown States & Refs (Homedata API)
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [siteAddressSuggestions, setSiteAddressSuggestions] = useState([]);
@@ -158,19 +179,31 @@ const QuoteCreate = () => {
     e.preventDefault();
 
     if (!form.workType.length) {
-      alert("Please select at least one work type.");
+      showModalDialog(
+        "Missing Field",
+        "Please select at least one work type.",
+        "error",
+      );
       return;
     }
     if (!form.category) {
-      alert("Please select a category.");
+      showModalDialog("Missing Field", "Please select a category.", "error");
       return;
     }
     if (!form.services.length) {
-      alert("Please add at least one service.");
+      showModalDialog(
+        "Missing Field",
+        "Please add at least one service.",
+        "error",
+      );
       return;
     }
     if (!form.validUntil) {
-      alert("Please select a 'Valid Until' date.");
+      showModalDialog(
+        "Missing Field",
+        "Please select a 'Valid Until' date.",
+        "error",
+      );
       return;
     }
 
@@ -205,7 +238,11 @@ const QuoteCreate = () => {
       };
 
       const res = await api.post("/quotes", payload);
-      alert(res.data.message || "Quotation created successfully");
+      showModalDialog(
+        "Success!",
+        res.data.message || "Quotation created successfully.",
+        "success",
+      );
 
       setForm({
         clientName: "",
@@ -228,7 +265,12 @@ const QuoteCreate = () => {
       setShowSiteAddress(false);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Error creating quotation");
+      showModalDialog(
+        "Error",
+        err?.response?.data?.message ||
+          "Error creating quotation. Please try again.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -904,6 +946,36 @@ const QuoteCreate = () => {
           {loading ? "Generating Quotation..." : "Generate Quotation"}
         </button>
       </form>
+
+      {/* Custom Alert/Success Modal Dialog */}
+      {modal.isOpen && (
+        <div className="modal-overlay" onClick={closeModalDialog}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div
+              className={`modal-icon-container ${
+                modal.type === "success"
+                  ? "modal-icon-success"
+                  : "modal-icon-error"
+              }`}
+            >
+              {modal.type === "success" ? "✓" : "✕"}
+            </div>
+            <h3>{modal.title}</h3>
+            <p>{modal.message}</p>
+            <button
+              type="button"
+              className={`modal-action-btn ${
+                modal.type === "success"
+                  ? "modal-btn-success"
+                  : "modal-btn-error"
+              }`}
+              onClick={closeModalDialog}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
