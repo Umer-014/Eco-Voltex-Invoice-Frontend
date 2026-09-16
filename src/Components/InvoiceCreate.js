@@ -9,6 +9,27 @@ const InvoiceCreate = () => {
   const debounceRef = useRef(null);
   const [showSiteAddress, setShowSiteAddress] = useState(false);
 
+  // Custom Modal Dialog State
+  const [modal, setModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success", // "success" or "error"
+  });
+
+  const showModalDialog = (title, message, type = "success") => {
+    setModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const closeModalDialog = () => {
+    setModal({ ...modal, isOpen: false });
+  };
+
   // Address Dropdown States (Homedata API)
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [siteAddressSuggestions, setSiteAddressSuggestions] = useState([]);
@@ -54,7 +75,7 @@ const InvoiceCreate = () => {
     setForm({ ...form, workType: updatedWorkTypes });
   };
 
-  // 🔎 Search Existing Client in your Database
+  // Search Existing Client
   const searchClient = (value) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -73,7 +94,7 @@ const InvoiceCreate = () => {
     }, 400);
   };
 
-  // 🌐 Homedata Address Lookup (Client Postcode / Typeahead)
+  // Homedata Address Lookup (Client Postcode / Typeahead)
   const searchClientAddress = (query) => {
     if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
     if (!query || query.length < 3) {
@@ -101,7 +122,7 @@ const InvoiceCreate = () => {
     }, 400);
   };
 
-  // 🌐 Homedata Site Address Lookup
+  // Homedata Site Address Lookup
   const searchSiteAddress = (query) => {
     if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
     if (!query || query.length < 3) {
@@ -178,9 +199,14 @@ const InvoiceCreate = () => {
     setIsSubmitting(true);
     try {
       const response = await api.post("/invoices", form);
-      alert(response.data.message);
 
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
+        showModalDialog(
+          "Success!",
+          response.data.message || "Invoice generated successfully.",
+          "success"
+        );
+
         setForm({
           clientName: "",
           clientPhone: "",
@@ -206,7 +232,11 @@ const InvoiceCreate = () => {
         setHasMaterial(false);
       }
     } catch (error) {
-      alert("Error creating invoice");
+      showModalDialog(
+        "Error",
+        error.response?.data?.message || "Error creating invoice. Please try again.",
+        "error"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -370,8 +400,6 @@ const InvoiceCreate = () => {
             onChange={handleInputChange}
           />
 
-          
-
           {/* Postcode Input with Homedata Dropdown Autocomplete */}
           <div style={{ position: "relative", width: "100%", zIndex: 100 }}>
             <input
@@ -413,7 +441,7 @@ const InvoiceCreate = () => {
                       fontSize: "0.9rem",
                       backgroundColor: "#fff",
                     }}
-                    onMouseDown={(e) => e.preventDefault()} // Prevents input blur before click registers
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setForm((prev) => ({
                         ...prev,
@@ -788,6 +816,36 @@ const InvoiceCreate = () => {
           )}
         </button>
       </form>
+
+      {/* Custom Alert/Success Modal Dialog */}
+      {modal.isOpen && (
+        <div className="modal-overlay" onClick={closeModalDialog}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div
+              className={`modal-icon-container ${
+                modal.type === "success"
+                  ? "modal-icon-success"
+                  : "modal-icon-error"
+              }`}
+            >
+              {modal.type === "success" ? "✓" : "✕"}
+            </div>
+            <h3>{modal.title}</h3>
+            <p>{modal.message}</p>
+            <button
+              type="button"
+              className={`modal-action-btn ${
+                modal.type === "success"
+                  ? "modal-btn-success"
+                  : "modal-btn-error"
+              }`}
+              onClick={closeModalDialog}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
