@@ -2,7 +2,6 @@ import api from "../lib/lib";
 import { useEffect, useMemo, useState } from "react";
 import { getInvoiceHtml } from "../utils/invoiceHtml";
 
-
 // Shared smart keywords matching your work type filter logic
 const workTypeKeywords = {
   electrical: [
@@ -216,7 +215,6 @@ export default function Admin() {
 
     const unpaidMatch = showOnlyUnpaid ? inv.remainingAmount > 0 : true;
 
-    // Smart work type filter matching services
     let matchesWorkType = true;
     if (searchWorkType !== "All Work Types" && searchWorkType !== "") {
       const targetKeywords = workTypeKeywords[searchWorkType.toLowerCase()] || [
@@ -352,7 +350,7 @@ export default function Admin() {
       .patch(`/invoices/${paymentInvoiceId}/payment`, payload)
       .then(async (res) => {
         alert((res.data && res.data.message) || "Payment updated successfully");
-        await fetchInvoices(); // Refresh all data properly
+        await fetchInvoices();
       })
       .catch((err) => {
         console.error("Error updating payment:", err);
@@ -388,12 +386,14 @@ export default function Admin() {
           price: Number(m.price) || 0,
           quantity: Number(m.quantity) || 0,
         })),
-        hasMaterial: Boolean(editInvoice.hasMaterial && editInvoice.materials?.length),
+        hasMaterial: Boolean(
+          editInvoice.hasMaterial && editInvoice.materials?.length,
+        ),
         paidAmount: Number(editInvoice.paidAmount) || 0,
       };
 
       await api.put(`/invoices/${editInvoice.invoiceNumber}`, payload);
-      await fetchInvoices(); // Refresh fresh data
+      await fetchInvoices();
       setEditInvoice(null);
     } catch (err) {
       console.error("Failed to save invoice", err);
@@ -418,7 +418,6 @@ export default function Admin() {
     }
   };
 
-
   const printInvoice = (invoiceId) => {
     const invoice = invoices.find(
       (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId,
@@ -434,6 +433,21 @@ export default function Admin() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f9f9f9" }}>
+      {/* Dynamic Keyframe Injection for Table Skeleton */}
+      <style>{`
+        @keyframes shimmerTable {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .table-skeleton {
+          background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+          background-size: 200% 100%;
+          animation: shimmerTable 1.5s infinite linear;
+          height: 18px;
+          border-radius: 4px;
+        }
+      `}</style>
+
       {/* Global Action Loader Overlay */}
       {globalActionLoading && (
         <div style={globalLoaderOverlay}>
@@ -451,7 +465,6 @@ export default function Admin() {
             marginBottom: "24px",
           }}
         >
-          {/* Blue: number of invoices */}
           <div
             style={{
               ...cardStyle,
@@ -463,7 +476,6 @@ export default function Admin() {
             <p style={statStyle}>{totalInvoices}</p>
           </div>
 
-          {/* Purple: total invoice amount */}
           <div
             style={{
               ...cardStyle,
@@ -475,7 +487,6 @@ export default function Admin() {
             <p style={statStyle}>£ {TotalInvoiceValue.toLocaleString()}</p>
           </div>
 
-          {/* Green: money received */}
           <div
             style={{
               ...cardStyle,
@@ -487,7 +498,6 @@ export default function Admin() {
             <p style={statStyle}>£ {TotalRevenue.toLocaleString()}</p>
           </div>
 
-          {/* Red: invoices that still need payment */}
           <div
             style={{
               ...cardStyle,
@@ -591,7 +601,7 @@ export default function Admin() {
           </label>
         </div>
 
-        {/* Filters Grid: Work Type, Search & Date */}
+        {/* Filters Grid */}
         <div
           style={{
             display: "grid",
@@ -639,7 +649,6 @@ export default function Admin() {
             }}
           />
 
-          {/* Added Month Filter Dropdown */}
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
@@ -668,96 +677,141 @@ export default function Admin() {
 
         {/* Invoices Table Section */}
         <h2>Invoices</h2>
-        {loadingInvoices ? (
-          <div style={{ textAlign: "center", padding: "40px" }}>
-            Loading invoices…
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "separate",
-                borderSpacing: 0,
-                marginTop: "16px",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                borderRadius: "8px",
-                overflow: "hidden",
-                minWidth: "800px",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#00D100", color: "#fff" }}>
-                  <th style={headerCell}>Invoice #</th>
-                  <th style={headerCell}>Client</th>
-                  <th style={headerCellRight}>Total</th>
-                  <th style={headerCellRight}>Paid</th>
-                  <th style={headerCellRight}>Remaining</th>
-                  <th style={headerCell}>Created</th>
-                  <th style={headerCell}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedInvoices.map((inv, idx) => (
-                  <tr
-                    key={inv._id}
-                    style={{
-                      background: idx % 2 === 0 ? "#fff" : "#f7f7f7",
-                    }}
-                  >
-                    <td style={bodyCell}>{inv.invoiceNumber}</td>
-                    <td style={bodyCell}>{inv.clientName}</td>
-                    <td style={bodyCellRight}>
-                      £{Number(inv.totalPrice || 0).toFixed(2)}
-                    </td>
-                    <td style={bodyCellRight}>
-                      £{Number(inv.paidAmount || 0).toFixed(2)}
-                    </td>
-                    <td style={bodyCellRight}>
-                      £{Number(inv.remainingAmount || 0).toFixed(2)}
-                    </td>
-                    <td style={bodyCell}>
-                      {new Date(inv.createdAt).toLocaleDateString()}
-                    </td>
-                    <td style={bodyCell}>
-                      <button
-                        style={{ ...actionBtn, background: "blue" }}
-                        onClick={() => printInvoice(inv.invoiceNumber)}
-                      >
-                        Show Invoice
-                      </button>
-                      <button
-                        style={{ ...actionBtn, background: "green" }}
-                        onClick={() => {
-                          setPaymentInvoiceId(inv.invoiceNumber);
-                          setRemainingAmount(inv.remainingAmount);
-                          setShowPaymentForm(true);
-                        }}
-                      >
-                        Update Payment
-                      </button>
-                      <button
-                        style={actionBtn}
-                        onClick={() => openEdit(inv.invoiceNumber)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        style={{ ...actionBtn, background: "#ef4444" }}
-                        onClick={() => deleteInvoice(inv.invoiceNumber)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              marginTop: "16px",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              borderRadius: "8px",
+              overflow: "hidden",
+              minWidth: "800px",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#00D100", color: "#fff" }}>
+                <th style={headerCell}>Invoice #</th>
+                <th style={headerCell}>Client</th>
+                <th style={headerCellRight}>Total</th>
+                <th style={headerCellRight}>Paid</th>
+                <th style={headerCellRight}>Remaining</th>
+                <th style={headerCell}>Created</th>
+                <th style={headerCell}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingInvoices
+                ? [1, 2, 3, 4, 5].map((key) => (
+                    <tr
+                      key={key}
+                      style={{ background: key % 2 === 0 ? "#fff" : "#f7f7f7" }}
+                    >
+                      <td style={bodyCell}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "80px" }}
+                        ></div>
+                      </td>
+                      <td style={bodyCell}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "140px" }}
+                        ></div>
+                      </td>
+                      <td style={bodyCellRight}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "70px", marginLeft: "auto" }}
+                        ></div>
+                      </td>
+                      <td style={bodyCellRight}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "70px", marginLeft: "auto" }}
+                        ></div>
+                      </td>
+                      <td style={bodyCellRight}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "70px", marginLeft: "auto" }}
+                        ></div>
+                      </td>
+                      <td style={bodyCell}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "90px" }}
+                        ></div>
+                      </td>
+                      <td style={bodyCell}>
+                        <div
+                          className="table-skeleton"
+                          style={{ width: "180px" }}
+                        ></div>
+                      </td>
+                    </tr>
+                  ))
+                : displayedInvoices.map((inv, idx) => (
+                    <tr
+                      key={inv._id}
+                      style={{
+                        background: idx % 2 === 0 ? "#fff" : "#f7f7f7",
+                      }}
+                    >
+                      <td style={bodyCell}>{inv.invoiceNumber}</td>
+                      <td style={bodyCell}>{inv.clientName}</td>
+                      <td style={bodyCellRight}>
+                        £{Number(inv.totalPrice || 0).toFixed(2)}
+                      </td>
+                      <td style={bodyCellRight}>
+                        £{Number(inv.paidAmount || 0).toFixed(2)}
+                      </td>
+                      <td style={bodyCellRight}>
+                        £{Number(inv.remainingAmount || 0).toFixed(2)}
+                      </td>
+                      <td style={bodyCell}>
+                        {new Date(inv.createdAt).toLocaleDateString()}
+                      </td>
+                      <td style={bodyCell}>
+                        <button
+                          style={{ ...actionBtn, background: "blue" }}
+                          onClick={() => printInvoice(inv.invoiceNumber)}
+                        >
+                          Show Invoice
+                        </button>
+                        <button
+                          style={{ ...actionBtn, background: "green" }}
+                          onClick={() => {
+                            setPaymentInvoiceId(inv.invoiceNumber);
+                            setRemainingAmount(inv.remainingAmount);
+                            setShowPaymentForm(true);
+                          }}
+                        >
+                          Update Payment
+                        </button>
+                        <button
+                          style={actionBtn}
+                          onClick={() => openEdit(inv.invoiceNumber)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          style={{ ...actionBtn, background: "#ef4444" }}
+                          onClick={() => deleteInvoice(inv.invoiceNumber)}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Pagination Controls */}
-        {!searchQuery &&
+        {!loadingInvoices &&
+          !searchQuery &&
           !selectedDate &&
           searchWorkType === "All Work Types" &&
           filteredInvoices.length > 5 && (
