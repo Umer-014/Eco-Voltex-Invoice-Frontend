@@ -78,6 +78,11 @@ const workTypeKeywords = {
     "zone",
     "loop",
   ],
+  epc: ["epc", "energy performance certificate", "energy rating"],
+  eicr: ["eicr", "electrical installation condition report", "inspection"],
+  eic: ["eic", "electrical inspection certificate", "inspection"],
+  pat: ["pat", "portable appliance testing", "appliance test"],
+  gas: ["gas", "boiler", "heating", "pipework", "flue", "combustion"],
 };
 
 const sumLines = (arr = []) =>
@@ -583,6 +588,11 @@ const SavedQuotes = () => {
           <option value="Electrical">Electrical</option>
           <option value="CCTV">CCTV</option>
           <option value="Fire Alarm">Fire Alarm</option>
+          <option value="EPC">EPC</option>
+          <option value="EICR">EICR</option>
+          <option value="EIC">EIC</option>
+          <option value="PAT">PAT</option>
+          <option value="GAS">GAS</option>
         </select>
 
         <input

@@ -78,6 +78,31 @@ const workTypeKeywords = {
     "zone",
     "loop",
   ],
+  epc: [
+    "epc",
+    "energy performance certificate",
+    "domestic energy rating",
+    "property energy rating",
+  ],
+  eicr: [
+    "eicr",
+    "electrical installation condition report",
+    "electrical installation check",
+  ],
+  eic: [
+    "eic",
+    "electrical installation certificate",
+  ],
+  pat: [
+    "pat",
+    "portable appliance testing",
+    "appliance testing",
+  ],
+  gas: [
+    "gas",
+    "gas safety",
+    "domestic gas safety",
+  ],
 };
 
 const SavedInvoices = () => {
@@ -207,6 +232,11 @@ const SavedInvoices = () => {
           <option value="Electrical">Electrical</option>
           <option value="CCTV">CCTV</option>
           <option value="Fire Alarm">Fire Alarm</option>
+          <option value="EPC">EPC</option>
+          <option value="EICR">EICR</option>
+          <option value="EIC">EIC</option>
+          <option value="PAT">PAT</option>
+          <option value="GAS">GAS</option>
         </select>
 
         <input

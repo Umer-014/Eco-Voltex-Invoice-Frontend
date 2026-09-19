@@ -614,7 +614,7 @@ const InvoiceCreate = () => {
             Select Work Type(s) *
           </label>
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            {["Electrical", "CCTV", "Fire Alarm"].map((type) => (
+            {["Electrical", "CCTV", "Fire Alarm", "EPC", "EICR", "EIC", "PAT", "GAS" ].map((type) => (
               <label
                 key={type}
                 style={{
