@@ -6,20 +6,23 @@ const calculateTotalBeforeDiscount = (totalPrice, discount) => {
 };
 
 export const getInvoiceHtml = (invoice, forPdf = false) => {
-    return `
+  return `
       <html>
       <head>
         <title>Invoice</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
           .invoice-container { width: 100%; max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ddd; box-sizing: border-box; }
-          .header { color: black; text-align: center; }
-          .header h1 { margin: 0; color: black; font-size: 28px; }
-          .header p { margin: 5px 0; font-size: 14px; }
+          .header { color: black; }
+          .header-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+          .header-copy { flex: 1; text-align: left; }
+          .header-copy h1 { margin: 0; color: black; font-size: 28px; }
+          .header-copy p { margin: 5px 0; font-size: 14px; }
+          .header-logo { display: flex; justify-content: flex-end; align-items: center; flex: 0 0 auto; }
+          .logo { max-width: 180px; max-height: 100px; }
           .payment-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
           .payment-details { font-size: 14px; line-height: 1.5; }
           .payment-details p { margin: 5px 0; }
-          .logo { max-width: 150px; max-height: 100px; }
           .client-info, .invoice-details { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
           .client-info { align-items: flex-start; gap: 20px; }
           .client-info p { margin: 5px 0; line-height: 1.4; }
@@ -28,13 +31,16 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           .table th, .table td { border: 2px solid black; padding: 10px; text-align: left; }
           .table th { background-color: #f4f4f4; }
-          .footer { color: black; text-align: center; }
-          .footer p:last-child { font-size: 12px; color: #666; }
+          .footer { color: black; text-align: center; margin-top: 20px; }
+          .footer .payment-details { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; align-items: center; margin-bottom: 8px; }
+          .footer .payment-details p { margin: 0; }
+          .footer .thank-you { font-weight: bold; margin: 6px 0; }
+          .footer .vat-note { font-size: 12px; color: #666; margin-top: 4px; }
           .totals-wrapper { position: relative; min-height: 210px; margin-top: 20px; padding: 0 10px; }
           .totals-table { position: absolute; top: 0; right: 10px; width: 28%; border-collapse: collapse; table-layout: fixed; font-size: 16px; margin: 0; }
-          .totals-table td { padding: 10px 6px; border: 1px solid white; text-align: left; }
+          .totals-table td { padding: 6px 6px; border: 1px solid white; text-align: left; }
           .totals-table .label { width: 55%; background-color: #f9f9f9; text-align: left; font-weight: bold; }
-          .totals-table .value { width: 45%; text-align: right; font-weight: bold; color: #333; }
+          .totals-table .value { width: 45%; text-align: right; font-weight: bold; color: #black; }
           .totals-table .total-row { font-weight: bold; }
           .totals-table .due-row { font-weight: bold; }
           .left-logos { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 25px; width: auto; }
@@ -42,30 +48,57 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           .logo-container img { width: 120%; height: 100px; }
           .logo-container-1 img { width: 120%; height: 100px; }
           @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .header { color: black !important; } .table th { background-color: white !important; } .payment-section { border: 3px solid #ddd !important; } .footer { color: black !important; } }
+
+          /* ---------- Repeating header & footer on every printed page ---------- */
+          :root { --header-h: 140px; --footer-h: 65px; }
+          .page-layout { width: 100%; border-collapse: collapse; }
+          .page-layout > thead > tr > td,
+          .page-layout > tbody > tr > td,
+          .page-layout > tfoot > tr > td { padding: 0; border: none; }
+          .header-space, .footer-space { display: none; }
+          .table tr, .client-info, .totals-wrapper { break-inside: avoid; page-break-inside: avoid; }
+          @page { size: A4; margin: 8mm 0; }
+          @media print {
+            .invoice-container { padding: 0 20px; }
+            .totals-wrapper { min-height: 170px; }
+            .print-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); background: #fff; overflow: hidden; z-index: 10; }
+            .print-footer { position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h); background: #fff; overflow: hidden; z-index: 10; margin-top: 0 !important; }
+            .print-header .fixed-inner, .print-footer .fixed-inner { max-width: 800px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
+            .print-header .fixed-inner { padding-top: 12px; }
+            .print-footer .fixed-inner { border-top: 1px solid #ddd; padding-top: 10px; }
+            .header-space { display: block; height: var(--header-h); }
+            .footer-space { display: block; height: var(--footer-h); }
+            .page-layout > thead { display: table-header-group; }
+            .page-layout > tfoot { display: table-footer-group; }
+          }
         </style>
       </head>
       <body>
         <div class="invoice-container">
-          <div class="header">
-            <h1>Eco Voltex Ltd</h1>
-            <p>Powering the Future with Sustainable Solutions</p>
-            <p><a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.uo.uk</a></p>
-            <p>${
-              new Date(invoice.createdAt) < new Date("2025-07-01")
-                ? "9a Oak Road Romford RM3 0PH"
-                : "5-7 Vine Street, Uxbridge London, UB81QE, United Kingdom"
-            }</p>
-            <p><strong>Phone:</strong> +44 7930 558824</p>
-          </div>
-          <p><strong>Payment Instructions</strong></p>
-          <div class="payment-section">
-            <div class="payment-details">
-              <p><strong>Account Name:</strong> Eco Voltex</p>
-              <p><strong>Account Number:</strong> 00347566</p>
-              <p><strong>Sort Code:</strong> 20-19-97</p>
+          <div class="header print-header">
+            <div class="fixed-inner">
+            <div class="header-row">
+              <div class="header-copy">
+                <h1>Eco Voltex Ltd</h1>
+                <p>Powering the Future with Sustainable Solutions</p>
+                <p> <strong>🌐</strong> <a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.co.uk</a></p>
+                <p> <strong>✉</strong> info@ecovoltex.co.uk &nbsp; | &nbsp; <strong>☏</strong> +44 7930 558824</p>
+                <p>${
+                  new Date(invoice.createdAt) < new Date("2025-07-01")
+                    ? "9a Oak Road Romford RM3 0PH"
+                    : "5-7 Vine Street, Uxbridge London, UB81QE, United Kingdom"
+                }</p>
+              </div>
+              <div class="header-logo">
+                <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
+              </div>
             </div>
-            <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
+            </div>
           </div>
+          <table class="page-layout">
+            <thead><tr><td><div class="header-space"></div></td></tr></thead>
+            <tfoot><tr><td><div class="footer-space"></div></td></tr></tfoot>
+            <tbody><tr><td>
           <p><strong>Issue to</strong></p>
           <div class="client-info">
             <div class="client-details">
@@ -76,13 +109,18 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 invoice.siteAddress || invoice.sitePostCode
                   ? `<div style="margin-top: 10px;">
                       ${invoice.siteAddress ? `<p><strong>Site Address:</strong> ${invoice.siteAddress}</p>` : ""}
-                      ${invoice.sitePostCode ? `<p>${invoice.sitePostCode}</p>` : ""}
+                      ${invoice.sitePostCode ? `<p><strong>Site Post Code:</strong> ${invoice.sitePostCode}</p>` : ""}
                     </div>`
                   : ""
               }
               ${
                 invoice.clientPhone
-                  ? `<p><strong>Phone No/Email:</strong> ${invoice.clientPhone}</p>`
+                  ? `<p>${
+                      invoice.clientPhone.includes("@")
+                        ? `<strong>Email:</strong> ${invoice.clientPhone}`
+                        : `<strong>Phone:</strong> ${invoice.clientPhone}`
+                    }
+                        </p>`
                   : ""
               }
             </div>
@@ -241,12 +279,22 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
               </tbody>
             </table>
           </div>
-          <div class="footer">
-            <p>THANK YOU FOR YOUR BUSINESS!</p>
-            <p>This business is not VAT registered; therefore, VAT is not applicable (0%).</p>
+            </td></tr></tbody>
+          </table>
+          <div class="footer print-footer">
+            <div class="fixed-inner">
+            <div class="payment-details">
+              <p><strong>Bank Name: Barclays Bank </strong></p>
+              <p><strong>Account Name: Eco Voltex </strong></p>
+              <p><strong>Account Number:00347566 </strong></p>
+              <p><strong>Sort Code: 20-19-97</strong></p>
+            </div>
+            <p class="thank-you">THANK YOU FOR YOUR BUSINESS!</p>
+          <!-- <p class="vat-note">This business is not VAT registered; therefore, VAT is not applicable (0%).</p>-->
+            </div>
           </div>
         </div>
       </body>
       </html>
     `;
-  };
+};
