@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import api from "../lib/lib";
+import { getInvoiceHtml } from "../utils/invoiceHtml";
 import "./InvoiceCreate.css";
 
 const InvoiceCreate = () => {
@@ -15,19 +16,37 @@ const InvoiceCreate = () => {
     title: "",
     message: "",
     type: "success", // "success" or "error"
+    invoice: null,
   });
 
-  const showModalDialog = (title, message, type = "success") => {
+  const showModalDialog = (title, message, type = "success", invoice = null) => {
     setModal({
       isOpen: true,
       title,
       message,
       type,
+      invoice,
     });
   };
 
   const closeModalDialog = () => {
-    setModal({ ...modal, isOpen: false });
+    setModal({ ...modal, isOpen: false, invoice: null });
+  };
+
+  const downloadCreatedInvoice = () => {
+    if (!modal.invoice) return;
+
+    const printWindow = window.open("", "_blank", "width=900,height=1000");
+    if (!printWindow) {
+      return;
+    }
+
+    printWindow.document.write(getInvoiceHtml(modal.invoice));
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 300);
   };
 
   // Address Dropdown States (Homedata API)
@@ -201,10 +220,13 @@ const InvoiceCreate = () => {
       const response = await api.post("/invoices", form);
 
       if (response.status === 201 || response.status === 200) {
+        const createdInvoice = response.data.invoice || response.data;
+
         showModalDialog(
-          "Success!",
+          "Invoice Created",
           response.data.message || "Invoice generated successfully.",
-          "success"
+          "success",
+          createdInvoice,
         );
 
         setForm({
@@ -832,6 +854,21 @@ const InvoiceCreate = () => {
             </div>
             <h3>{modal.title}</h3>
             <p>{modal.message}</p>
+            {modal.invoice?.invoiceNumber && (
+              <p style={{ marginTop: "10px", fontWeight: 600 }}>
+                Invoice Number: {modal.invoice.invoiceNumber}
+              </p>
+            )}
+            {modal.type === "success" && modal.invoice && (
+              <button
+                type="button"
+                className="modal-action-btn modal-btn-success"
+                onClick={downloadCreatedInvoice}
+                style={{ marginBottom: "10px" }}
+              >
+                Download Invoice
+              </button>
+            )}
             <button
               type="button"
               className={`modal-action-btn ${
