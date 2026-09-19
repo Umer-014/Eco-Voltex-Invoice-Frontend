@@ -224,10 +224,25 @@ export default function Admin() {
   // Filtering logic (search + work type + date + unpaid + period)
   const filteredInvoices = periodInvoices.filter((inv) => {
     const invDate = new Date(inv.createdAt);
+    const normalizedQuery = (searchQuery || "").trim().toLowerCase();
 
-    const nameMatch = inv.clientName
-      ?.toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    const searchTextValues = [
+      inv.clientName,
+      inv.invoiceNumber,
+      inv.paymentOption,
+      inv.clientAddress,
+      inv.postCode,
+      inv.siteAddress,
+      inv.sitePostCode,
+      ...(inv.services || []).map((item) => item.name),
+      ...(inv.materials || []).map((item) => item.name),
+    ];
+
+    const textMatch =
+      !normalizedQuery ||
+      searchTextValues.some((value) =>
+        String(value || "").toLowerCase().includes(normalizedQuery),
+      );
 
     const dateMatch = selectedDate
       ? new Date(inv.createdAt).toLocaleDateString("en-CA") === selectedDate
@@ -240,20 +255,39 @@ export default function Admin() {
 
     const unpaidMatch = showOnlyUnpaid ? inv.remainingAmount > 0 : true;
 
+    const selectedWorkType = (searchWorkType || "").trim();
+    const hasWorkTypeFilter = selectedWorkType && selectedWorkType !== "All Work Types";
+
     let matchesWorkType = true;
-    if (searchWorkType !== "All Work Types" && searchWorkType !== "") {
-      const targetKeywords = workTypeKeywords[searchWorkType.toLowerCase()] || [
-        searchWorkType.toLowerCase(),
+    if (hasWorkTypeFilter) {
+      const targetKeywords = workTypeKeywords[selectedWorkType.toLowerCase()] || [
+        selectedWorkType.toLowerCase(),
       ];
-      matchesWorkType = (inv.services || []).some((item) => {
-        const itemText = (item.name || "").toLowerCase();
-        return targetKeywords.some((keyword) => itemText.includes(keyword));
-      });
+      const workTypeText = [
+        ...(Array.isArray(inv.workType) ? inv.workType : []),
+        ...(Array.isArray(inv.services) ? inv.services.map((item) => item.name || "") : []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      matchesWorkType = targetKeywords.some((keyword) =>
+        workTypeText.includes(keyword.toLowerCase()),
+      );
     }
 
-    return (
-      nameMatch && dateMatch && monthMatch && unpaidMatch && matchesWorkType
-    );
+    if (hasWorkTypeFilter && normalizedQuery) {
+      return (dateMatch && monthMatch && unpaidMatch && (matchesWorkType || textMatch));
+    }
+
+    if (hasWorkTypeFilter) {
+      return dateMatch && monthMatch && unpaidMatch && matchesWorkType;
+    }
+
+    if (normalizedQuery) {
+      return dateMatch && monthMatch && unpaidMatch && textMatch;
+    }
+
+    return dateMatch && monthMatch && unpaidMatch;
   });
 
   const displayedInvoices =

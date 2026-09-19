@@ -146,12 +146,18 @@ const SavedInvoices = () => {
           searchWorkType.toLowerCase()
         ] || [searchWorkType.toLowerCase()];
 
-        matchesWorkType = invoice.services?.some((service) => {
-          const serviceText = (service.name || "").toLowerCase();
-          return targetKeywords.some((keyword) =>
-            serviceText.includes(keyword),
-          );
-        });
+        const workTypeText = [
+          ...(Array.isArray(invoice.workType) ? invoice.workType : []),
+          ...(Array.isArray(invoice.services)
+            ? invoice.services.map((service) => service.name || "")
+            : []),
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        matchesWorkType = targetKeywords.some((keyword) =>
+          workTypeText.includes(keyword.toLowerCase()),
+        );
       }
 
       const matchesInvoiceNumber = searchInvoiceNumber
