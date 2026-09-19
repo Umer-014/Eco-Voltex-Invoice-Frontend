@@ -1,4 +1,5 @@
 import logo from "../assets/logo.jpg";
+import certificateLogo from "../assets/Certification.jpg";
 
 const calculateTotalBeforeDiscount = (totalPrice, discount) => {
   const newTotal = totalPrice + (discount || 0);
@@ -11,18 +12,25 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
       <head>
         <title>Invoice</title>
         <style>
+          :root { --header-h: 196px; --footer-h: 60px; }
           body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-          .invoice-container { width: 100%; max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ddd; box-sizing: border-box; }
-          .header { color: black; }
+          html, body { height: 100%; }
+          .invoice-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
+          .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: #0f3b3a; color: #fff; height: var(--header-h); box-sizing: border-box; overflow: hidden; }
+          .print-header .fixed-inner { max-width: 800px; margin: 0 auto; padding: 14px 20px 10px; box-sizing: border-box; }
           .header-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
           .header-copy { flex: 1; text-align: left; }
-          .header-copy h1 { margin: 0; color: black; font-size: 28px; }
-          .header-copy p { margin: 5px 0; font-size: 14px; }
+          .header-copy h1 { margin: 0; color: #ffffff; font-size: 28px; }
+          .header-copy p { margin: 5px 0; font-size: 14px; color: #e9f3f1; }
+          .header-copy a { color: #dff9f3; }
           .header-logo { display: flex; justify-content: flex-end; align-items: center; flex: 0 0 auto; }
           .logo { max-width: 180px; max-height: 100px; }
           .payment-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
           .payment-details { font-size: 14px; line-height: 1.5; }
           .payment-details p { margin: 5px 0; }
+          .bank-header-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); }
+          .bank-header-block .payment-details { display: flex; flex-wrap: wrap; gap: 18px; justify-content: flex-start; }
+          .bank-header-block .payment-details p { margin: 0; color: #ffffff; }
           .client-info, .invoice-details { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
           .client-info { align-items: flex-start; gap: 20px; }
           .client-info p { margin: 5px 0; line-height: 1.4; }
@@ -31,52 +39,44 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           .table th, .table td { border: 2px solid black; padding: 10px; text-align: left; }
           .table th { background-color: #f4f4f4; }
-          .footer { color: black; text-align: center; margin-top: 20px; }
-          .footer .payment-details { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; align-items: center; margin-bottom: 8px; }
-          .footer .payment-details p { margin: 0; }
-          .footer .thank-you { font-weight: bold; margin: 6px 0; }
-          .footer .vat-note { font-size: 12px; color: #666; margin-top: 4px; }
+          .print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: #ffffff; border-top: 1px solid #ddd; height: var(--footer-h); box-sizing: border-box; overflow: hidden; }
+          .print-footer .fixed-inner { max-width: 800px; height: 100%; margin: 0 auto; padding: 0 20px; box-sizing: border-box; text-align: center; display: flex; align-items: center; justify-content: center; }
+          .footer { color: black; text-align: center; }
+          .footer .thank-you { font-weight: bold; margin: 0; }
           .totals-wrapper { position: relative; min-height: 210px; margin-top: 20px; padding: 0 10px; }
           .totals-table { position: absolute; top: 0; right: 10px; width: 28%; border-collapse: collapse; table-layout: fixed; font-size: 16px; margin: 0; }
           .totals-table td { padding: 6px 6px; border: 1px solid white; text-align: left; }
           .totals-table .label { width: 55%; background-color: #f9f9f9; text-align: left; font-weight: bold; }
-          .totals-table .value { width: 45%; text-align: right; font-weight: bold; color: #black; }
+          .totals-table .value { width: 45%; text-align: right; font-weight: bold; color: #000; }
           .totals-table .total-row { font-weight: bold; }
           .totals-table .due-row { font-weight: bold; }
           .left-logos { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 25px; width: auto; }
           .logo-container { flex: 1; text-align: left; }
           .logo-container img { width: 120%; height: 100px; }
           .logo-container-1 img { width: 120%; height: 100px; }
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .header { color: black !important; } .table th { background-color: white !important; } .payment-section { border: 3px solid #ddd !important; } .footer { color: black !important; } }
-
-          /* ---------- Repeating header & footer on every printed page ---------- */
-          :root { --header-h: 140px; --footer-h: 65px; }
-          .page-layout { width: 100%; border-collapse: collapse; }
-          .page-layout > thead > tr > td,
-          .page-layout > tbody > tr > td,
-          .page-layout > tfoot > tr > td { padding: 0; border: none; }
-          .header-space, .footer-space { display: none; }
           .table tr, .client-info, .totals-wrapper { break-inside: avoid; page-break-inside: avoid; }
-          @page { size: A4; margin: 8mm 0; }
+          .page-layout { width: 100%; border-collapse: collapse; }
+          .page-layout > thead > tr > td, .page-layout > tbody > tr > td, .page-layout > tfoot > tr > td { padding: 0; border: none; }
+          .page-layout > thead { display: table-header-group; }
+          .page-layout > tfoot { display: table-footer-group; }
+          .header-space { height: calc(var(--header-h) + 14px); }
+          .footer-space { height: calc(var(--footer-h) + 14px); }
+          @page {
+            size: A4;
+            margin: 0 0 12mm 0;
+            @bottom-center { content: "Page " counter(page) " of " counter(pages); font-family: Arial, sans-serif; font-size: 11px; color: #444; vertical-align: middle; }
+          }
           @media print {
-            .invoice-container { padding: 0 20px; }
-            .totals-wrapper { min-height: 170px; }
-            .print-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); background: #fff; overflow: hidden; z-index: 10; }
-            .print-footer { position: fixed; bottom: 0; left: 0; right: 0; height: var(--footer-h); background: #fff; overflow: hidden; z-index: 10; margin-top: 0 !important; }
-            .print-header .fixed-inner, .print-footer .fixed-inner { max-width: 800px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
-            .print-header .fixed-inner { padding-top: 12px; }
-            .print-footer .fixed-inner { border-top: 1px solid #ddd; padding-top: 10px; }
-            .header-space { display: block; height: var(--header-h); }
-            .footer-space { display: block; height: var(--footer-h); }
-            .page-layout > thead { display: table-header-group; }
-            .page-layout > tfoot { display: table-footer-group; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .header { color: #fff !important; }
+            .table th { background-color: white !important; }
+            .print-header, .print-footer { position: fixed; }
           }
         </style>
       </head>
       <body>
-        <div class="invoice-container">
-          <div class="header print-header">
-            <div class="fixed-inner">
+        <div class="print-header">
+          <div class="fixed-inner">
             <div class="header-row">
               <div class="header-copy">
                 <h1>Eco Voltex Ltd</h1>
@@ -93,8 +93,18 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
               </div>
             </div>
+            <div class="bank-header-block">
+              <div class="payment-details">
+                <p><strong>Bank Name:</strong> Barclays Bank</p>
+                <p><strong>Account Name:</strong> Eco Voltex</p>
+                <p><strong>Account Number:</strong> 00347566</p>
+                <p><strong>Sort Code:</strong> 20-19-97</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        <div class="invoice-container">
           <table class="page-layout">
             <thead><tr><td><div class="header-space"></div></td></tr></thead>
             <tfoot><tr><td><div class="footer-space"></div></td></tr></tfoot>
@@ -236,7 +246,7 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           <div class="totals-wrapper">
             <div class="left-logos">
               <div class="logo-container-1">
-                <img src="${require("../assets/Certification.jpg")}" alt="UKAS Logo" />
+                <img src="${certificateLogo}" alt="Eco Voltex Certificate" class="logo" />
               </div>
             </div>
             <table class="totals-table">
@@ -252,15 +262,15 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                   <td class="label">VAT</td>
                   <td class="value">£0.00</td>
                 </tr>
-                <tr>
                 ${
                   invoice.discount > 0
                     ? `<tr>
-        <td class="label">Discount</td>
-        <td class="value">£${invoice.discount.toFixed(2)}</td>
-      </tr>`
+                        <td class="label">Discount</td>
+                        <td class="value">£${invoice.discount.toFixed(2)}</td>
+                      </tr>`
                     : ""
-                } 
+                }
+                <tr>
                   <td class="label total-row">Total</td>
                   <td class="value total-row">£${invoice.totalPrice.toFixed(
                     2,
@@ -281,19 +291,42 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           </div>
             </td></tr></tbody>
           </table>
-          <div class="footer print-footer">
-            <div class="fixed-inner">
-            <div class="payment-details">
-              <p><strong>Bank Name: Barclays Bank </strong></p>
-              <p><strong>Account Name: Eco Voltex </strong></p>
-              <p><strong>Account Number:00347566 </strong></p>
-              <p><strong>Sort Code: 20-19-97</strong></p>
-            </div>
+        </div>
+
+        <div class="print-footer">
+          <div class="fixed-inner">
             <p class="thank-you">THANK YOU FOR YOUR BUSINESS!</p>
-          <!-- <p class="vat-note">This business is not VAT registered; therefore, VAT is not applicable (0%).</p>-->
-            </div>
           </div>
         </div>
+        <script>
+          (function () {
+            // Returns true when the whole invoice fits on a single page.
+            // Measured with a narrow width and the shortest common page height (Letter, 11in),
+            // so when in doubt it says "more than one page" and the page numbers stay visible.
+            function fitsOnOnePage() {
+              var root = document.documentElement;
+              var oldWidth = root.style.width;
+              root.style.width = "720px";
+              var probe = document.createElement("div");
+              probe.style.cssText = "position:absolute;visibility:hidden;width:1px;height:11in;";
+              document.body.appendChild(probe);
+              var pageHeight = probe.getBoundingClientRect().height;
+              var contentHeight = document.querySelector(".page-layout").getBoundingClientRect().height;
+              document.body.removeChild(probe);
+              root.style.width = oldWidth;
+              return contentHeight <= pageHeight - 2;
+            }
+            function applyPageNumbers() {
+              if (fitsOnOnePage()) {
+                var style = document.createElement("style");
+                style.textContent = "@page { margin: 0; @bottom-center { content: none; } }";
+                document.head.appendChild(style);
+              }
+            }
+            if (document.readyState === "complete") applyPageNumbers();
+            else window.addEventListener("load", applyPageNumbers);
+          })();
+        </script>
       </body>
       </html>
     `;
