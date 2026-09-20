@@ -76,6 +76,7 @@ const InvoiceCreate = () => {
     paidAmount: 0,
     date: new Date().toISOString().split("T")[0],
     discount: "",
+    notes: "",
   });
 
   const handleInputChange = (e) => {
@@ -217,7 +218,12 @@ const InvoiceCreate = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await api.post("/invoices", form);
+      const payload = {
+        ...form,
+        notes: form.notes?.trim() || "",
+      };
+
+      const response = await api.post("/invoices", payload);
 
       if (response.status === 201 || response.status === 200) {
         const createdInvoice = response.data.invoice || response.data;
@@ -245,6 +251,7 @@ const InvoiceCreate = () => {
           paidAmount: 0,
           date: new Date().toISOString().split("T")[0],
           discount: "",
+          notes: "",
         });
 
         setClientType("new");
@@ -826,6 +833,36 @@ const InvoiceCreate = () => {
               onChange={handleInputChange}
             />
           </div>
+        </div>
+
+        <div style={{ marginTop: "20px" }}>
+          <label
+            htmlFor="invoice-notes"
+            style={{
+              display: "block",
+              fontWeight: "bold",
+              marginBottom: "8px",
+              color: "#444",
+            }}
+          >
+            Notes / Terms
+          </label>
+          <textarea
+            id="invoice-notes"
+            name="notes"
+            placeholder="Type each note on a new line or use bullet points like • Payment due in 7 days"
+            value={form.notes}
+            onChange={handleInputChange}
+            rows={5}
+            style={{
+              width: "100%",
+              padding: "12px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              resize: "vertical",
+              boxSizing: "border-box",
+            }}
+          />
         </div>
 
         <button type="submit" disabled={isSubmitting}>

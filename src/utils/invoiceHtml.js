@@ -7,6 +7,12 @@ const calculateTotalBeforeDiscount = (totalPrice, discount) => {
 };
 
 const getNotesList = (invoice) => {
+  const normalizeNoteItem = (item) =>
+    String(item || "")
+      .split(/\r?\n|•|·|\u2022|;|,|\|/)
+      .map((part) => part.replace(/^[\s\-\*]+/, "").trim())
+      .filter(Boolean);
+
   const rawNotes =
     invoice?.notes ??
     invoice?.invoiceNotes ??
@@ -15,24 +21,17 @@ const getNotesList = (invoice) => {
     [];
 
   if (Array.isArray(rawNotes)) {
-    return rawNotes
-      .map((item) => String(item || "").trim())
-      .filter(Boolean);
+    return rawNotes.flatMap((item) => normalizeNoteItem(item));
   }
 
   if (typeof rawNotes === "string") {
-    return rawNotes
-      .split(/\r?\n|•|·|\u2022|;|\|/)
-      .map((item) => item.replace(/^[\s\-\*]+/, "").trim())
-      .filter(Boolean);
+    return normalizeNoteItem(rawNotes);
   }
 
   if (rawNotes && typeof rawNotes === "object") {
     const nestedList = rawNotes.items || rawNotes.lines || rawNotes.values;
     if (Array.isArray(nestedList)) {
-      return nestedList
-        .map((item) => String(item || "").trim())
-        .filter(Boolean);
+      return nestedList.flatMap((item) => normalizeNoteItem(item));
     }
 
     const textValue = rawNotes.text || rawNotes.description || rawNotes.message;
@@ -185,8 +184,10 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
             padding-left: 18px;
           }
           .notes-box li {
+            display: block;
             margin: 4px 0;
             line-height: 1.4;
+            white-space: normal;
           }
           .totals-table { position: absolute; top: 0; right: 10px; width: 28%; border-collapse: collapse; table-layout: fixed; font-size: 16px; margin: 0; }
           .totals-table td { padding: 6px 6px; border: 1px solid white; text-align: left; }
