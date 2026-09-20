@@ -6,44 +6,188 @@ const calculateTotalBeforeDiscount = (totalPrice, discount) => {
   return newTotal.toFixed(2);
 };
 
+const getNotesList = (invoice) => {
+  const rawNotes =
+    invoice?.notes ??
+    invoice?.invoiceNotes ??
+    invoice?.terms ??
+    invoice?.note ??
+    [];
+
+  if (Array.isArray(rawNotes)) {
+    return rawNotes
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  if (typeof rawNotes === "string") {
+    return rawNotes
+      .split(/\r?\n|•|·|\u2022|;|\|/)
+      .map((item) => item.replace(/^[\s\-\*]+/, "").trim())
+      .filter(Boolean);
+  }
+
+  if (rawNotes && typeof rawNotes === "object") {
+    const nestedList = rawNotes.items || rawNotes.lines || rawNotes.values;
+    if (Array.isArray(nestedList)) {
+      return nestedList
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+    }
+
+    const textValue = rawNotes.text || rawNotes.description || rawNotes.message;
+    if (typeof textValue === "string") {
+      return getNotesList({ notes: textValue });
+    }
+  }
+
+  return [];
+};
+
 export const getInvoiceHtml = (invoice, forPdf = false) => {
+  const serviceSubtotal = (invoice.services || []).reduce(
+    (sum, service) =>
+      sum + (Number(service.price) || 0) * (Number(service.quantity) || 0),
+    0,
+  );
+
+  const materialSubtotal =
+    invoice.hasMaterial && Array.isArray(invoice.materials)
+      ? invoice.materials.reduce(
+          (sum, material) =>
+            sum +
+            (Number(material.price) || 0) * (Number(material.quantity) || 0),
+          0,
+        )
+      : 0;
+
+  const notesList = getNotesList(invoice);
+  const visibleNotes = notesList.length ? notesList : [
+    "Payment due within 7 days of invoice date.",
+    "Please include the invoice number on all payments.",
+    "Any additional work requested after this invoice will be billed separately.",
+  ];
+
   return `
       <html>
       <head>
         <title>Invoice</title>
         <style>
-          :root { --header-h: 196px; --footer-h: 60px; }
+          :root { --header-h: 176px; --footer-h: 60px; }
           body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
           html, body { height: 100%; }
           .invoice-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
-          .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: #0f3b3a; color: #fff; height: var(--header-h); box-sizing: border-box; overflow: hidden; }
+          .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: #f9f9f9; color: black; height: var(--header-h); box-sizing: border-box; overflow: hidden; }
           .print-header .fixed-inner { max-width: 800px; margin: 0 auto; padding: 14px 20px 10px; box-sizing: border-box; }
-          .header-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-          .header-copy { flex: 1; text-align: left; }
-          .header-copy h1 { margin: 0; color: #ffffff; font-size: 28px; }
-          .header-copy p { margin: 5px 0; font-size: 14px; color: #e9f3f1; }
-          .header-copy a { color: #dff9f3; }
-          .header-logo { display: flex; justify-content: flex-end; align-items: center; flex: 0 0 auto; }
-          .logo { max-width: 180px; max-height: 100px; }
-          .payment-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
-          .payment-details { font-size: 14px; line-height: 1.5; }
-          .payment-details p { margin: 5px 0; }
-          .bank-header-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); }
-          .bank-header-block .payment-details { display: flex; flex-wrap: wrap; gap: 18px; justify-content: flex-start; }
-          .bank-header-block .payment-details p { margin: 0; color: #ffffff; }
-          .client-info, .invoice-details { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 3px solid #ddd; padding: 10px; }
-          .client-info { align-items: flex-start; gap: 20px; }
+          .header-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: end;
+            gap: 20px;
+          }
+          .header-copy {
+            grid-column: 2;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          }
+          .header-copy h1 {
+            margin: 0;
+            color: black;
+            font-size: 28px;
+            text-align: center;
+            width: 100%;
+          }
+          .header-copy p { margin: 5px 0; font-size: 14px; color: black; text-align: center; }
+          .header-copy a { color: black; text-decoration: none; }
+          .header-logo {
+            grid-column: 3;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            flex: 0 0 auto;
+            height: 100%;
+          }
+          .logo {
+            max-width: 180px;
+            max-height: 100px;
+            display: block;
+            transform: translateY(2px);
+          }
+          .payment-section {
+            margin-bottom: 12px;
+            border: 2px solid #000000;
+            padding: 10px 12px 8px;
+            box-sizing: border-box;
+            width: 100%;
+          }
+          .payment-section-title {
+            display: block;
+            margin: 0 0 8px;
+            font-weight: bold;
+            font-size: 14px;
+          }
+          .payment-details {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px 18px;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .payment-details p {
+            margin: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+          .client-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            border: 2px solid #000000;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            gap: 10px;
+          }
+          .invoice-details {
+            display: block;
+            margin-bottom: 10px;
+            padding: 0;
+            width: 100%;
+            box-sizing: border-box;
+          }
           .client-info p { margin: 5px 0; line-height: 1.4; }
-          .client-details { flex: 0 0 calc(50% - 10px); min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
-          .invoice-meta { flex: 0 0 calc(50% - 10px); min-width: 0; text-align: right; overflow-wrap: anywhere; word-break: break-word; }
-          .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          .client-details { flex: 0 0 60%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+          .invoice-meta { flex: 0 0 40%; min-width: 0; text-align: right; overflow-wrap: anywhere; word-break: break-word; }
+          .table { width: 100%; border-collapse: collapse; margin-top: 10px; box-sizing: border-box; }
           .table th, .table td { border: 2px solid black; padding: 10px; text-align: left; }
           .table th { background-color: #f4f4f4; }
           .print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: #ffffff; border-top: 1px solid #ddd; height: var(--footer-h); box-sizing: border-box; overflow: hidden; }
           .print-footer .fixed-inner { max-width: 800px; height: 100%; margin: 0 auto; padding: 0 20px; box-sizing: border-box; text-align: center; display: flex; align-items: center; justify-content: center; }
           .footer { color: black; text-align: center; }
           .footer .thank-you { font-weight: bold; margin: 0; }
-          .totals-wrapper { position: relative; min-height: 210px; margin-top: 20px; padding: 0 10px; }
+          .totals-wrapper { position: relative; min-height: 210px; margin-top: 10px; padding: 0 10px; }
+          .notes-box {
+            margin-top: 18px;
+            border: 2px solid #000000;
+            padding: 10px 12px;
+            box-sizing: border-box;
+            width: 100%;
+          }
+          .notes-box h3 {
+            margin: 0 0 8px;
+            font-size: 16px;
+          }
+          .notes-box ul {
+            margin: 0;
+            padding-left: 18px;
+          }
+          .notes-box li {
+            margin: 4px 0;
+            line-height: 1.4;
+          }
           .totals-table { position: absolute; top: 0; right: 10px; width: 28%; border-collapse: collapse; table-layout: fixed; font-size: 16px; margin: 0; }
           .totals-table td { padding: 6px 6px; border: 1px solid white; text-align: left; }
           .totals-table .label { width: 55%; background-color: #f9f9f9; text-align: left; font-weight: bold; }
@@ -59,8 +203,8 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           .page-layout > thead > tr > td, .page-layout > tbody > tr > td, .page-layout > tfoot > tr > td { padding: 0; border: none; }
           .page-layout > thead { display: table-header-group; }
           .page-layout > tfoot { display: table-footer-group; }
-          .header-space { height: calc(var(--header-h) + 14px); }
-          .footer-space { height: calc(var(--footer-h) + 14px); }
+          .header-space { height: calc(var(--header-h) + 6px); }
+          .footer-space { height: calc(var(--footer-h) + 8px); }
           @page {
             size: A4;
             margin: 0 0 12mm 0;
@@ -80,9 +224,14 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
             <div class="header-row">
               <div class="header-copy">
                 <h1>Eco Voltex Ltd</h1>
-                <p>Powering the Future with Sustainable Solutions</p>
-                <p> <strong>🌐</strong> <a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.co.uk</a></p>
-                <p> <strong>✉</strong> info@ecovoltex.co.uk &nbsp; | &nbsp; <strong>☏</strong> +44 7930 558824</p>
+                <p >Powering the Future with Sustainable Solutions</p>
+                <p style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin: 5px 0;">
+                  <span><strong>🌐</strong> www.ecovoltex.co.uk</span>
+                  <span style="display:inline-block;">|</span>
+                  <span><strong>✉</strong> info@ecovoltex.co.uk</span>
+                  <span style="display:inline-block;">|</span>
+                  <span><strong>☏</strong> +44 7930 558824</span>
+                </p>
                 <p>${
                   new Date(invoice.createdAt) < new Date("2025-07-01")
                     ? "9a Oak Road Romford RM3 0PH"
@@ -91,14 +240,6 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
               </div>
               <div class="header-logo">
                 <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
-              </div>
-            </div>
-            <div class="bank-header-block">
-              <div class="payment-details">
-                <p><strong>Bank Name:</strong> Barclays Bank</p>
-                <p><strong>Account Name:</strong> Eco Voltex</p>
-                <p><strong>Account Number:</strong> 00347566</p>
-                <p><strong>Sort Code:</strong> 20-19-97</p>
               </div>
             </div>
           </div>
@@ -113,16 +254,6 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           <div class="client-info">
             <div class="client-details">
               <p><strong>Name:</strong> ${invoice.clientName}</p>
-              <p><strong>Address:</strong> ${invoice.clientAddress || "Address not provided"}</p>
-              <p>${invoice.postCode}</p>
-              ${
-                invoice.siteAddress || invoice.sitePostCode
-                  ? `<div style="margin-top: 10px;">
-                      ${invoice.siteAddress ? `<p><strong>Site Address:</strong> ${invoice.siteAddress}</p>` : ""}
-                      ${invoice.sitePostCode ? `<p><strong>Site Post Code:</strong> ${invoice.sitePostCode}</p>` : ""}
-                    </div>`
-                  : ""
-              }
               ${
                 invoice.clientPhone
                   ? `<p>${
@@ -133,6 +264,15 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                         </p>`
                   : ""
               }
+              <p><strong>Address:</strong> ${invoice.clientAddress || "Address not provided"} ${invoice.postCode}</p>
+              ${
+                invoice.siteAddress || invoice.sitePostCode
+                  ? `<div style="margin-top: 10px;">
+                      ${invoice.siteAddress ? `<p><strong>Site Address:</strong> ${invoice.siteAddress} ${invoice.sitePostCode}</p>` : ""}
+                    </div>`
+                  : ""
+              }
+              
             </div>
             <div class="invoice-meta">
               <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
@@ -172,12 +312,22 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
               }
             </div>
           </div>
+          <p><strong>Payment Details</strong></p>
+          <div class="payment-section">
+            <div class="payment-details">
+              <p><strong>Bank Name:</strong> ${invoice.bankName || "Barclays Bank"}</p>
+              <p><strong>Account Name:</strong> ${invoice.accountName || "Eco Voltex Ltd"}</p>
+              <p><strong>Account Number:</strong> ${invoice.accountNumber || "00347566"}</p>
+              <p><strong>Sort Code:</strong> ${invoice.sortCode || "20-19-97"}</p>
+            </div>
+          </div>
+
           <p><strong>Services</strong></p>
           <div class="invoice-details">
             <table class="table">
               <thead>
                 <tr>
-                  <th>Service No.</th>
+                  <th>No.</th>
                   <th>Description</th>
                   <th>Unit Price</th>
                   <th>Quantity</th>
@@ -202,6 +352,10 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 `,
                   )
                   .join("")}
+                <tr>
+                  <td colspan="4" style="text-align:right; font-weight:bold;">Service Subtotal</td>
+                  <td style="font-weight:bold;">£${serviceSubtotal.toFixed(2)}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -215,7 +369,7 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
             <table class="table">
               <thead>
                 <tr>
-                  <th>Material No.</th>
+                  <th>No.</th>
                   <th>Description</th>
                   <th>Unit Price</th>
                   <th>Quantity</th>
@@ -238,11 +392,16 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 `,
                   )
                   .join("")}
+                <tr>
+                  <td colspan="4" style="text-align:right; font-weight:bold;">Material Subtotal</td>
+                  <td style="font-weight:bold;">£${materialSubtotal.toFixed(2)}</td>
+                </tr>
               </tbody>
             </table>
           </div>`
               : ""
           }
+          
           <div class="totals-wrapper">
             <div class="left-logos">
               <div class="logo-container-1">
@@ -289,6 +448,24 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
               </tbody>
             </table>
           </div>
+          <p><strong>Notes</strong></p>
+          ${
+            visibleNotes.length
+              ? `
+          <div class="notes-box">
+            <ul>
+              ${visibleNotes
+                .map(
+                  (note) => `
+                <li>${note}</li>
+              `,
+                )
+                .join("")}
+            </ul>
+          </div>
+          `
+              : ""
+          }
             </td></tr></tbody>
           </table>
         </div>
