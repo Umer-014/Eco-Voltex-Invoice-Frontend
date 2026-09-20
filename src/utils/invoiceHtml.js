@@ -10,7 +10,7 @@ const getNotesList = (invoice) => {
   const normalizeNoteItem = (item) =>
     String(item || "")
       .split(/\r?\n|•|·|\u2022|;|,|\|/)
-      .map((part) => part.replace(/^[\s\-\*]+/, "").trim())
+      .map((part) => part.replace(/^[\s\-*]+/, "").trim())
       .filter(Boolean);
 
   const rawNotes =
