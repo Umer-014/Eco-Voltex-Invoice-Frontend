@@ -99,7 +99,6 @@ export default function Admin() {
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [globalActionLoading, setGlobalActionLoading] = useState(false);
 
-  const [pagination, setPagination] = useState(null);
   const [invoiceSummary, setInvoiceSummary] = useState({
     totalInvoices: 0,
     totalInvoiceValue: 0,
@@ -184,7 +183,6 @@ export default function Admin() {
       });
 
       setInvoices(response.data.invoices || []);
-      setPagination(response.data.pagination || null);
       setInvoiceSummary(
         response.data.summary || {
           totalInvoices: 0,
