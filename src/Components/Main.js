@@ -115,8 +115,7 @@ const Main = () => {
           <Route path="/create-invoice" element={<InvoiceCreate />} />
           <Route path="/saved-invoices" element={<SavedInvoices />} />
           <Route path="/create-quote" element={<QuoteCreate />} />
-          <Route path="/saved-quotes" element={<SavedQuotes />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/saved-quotes" element={<SavedQuotes />} />          <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/create-invoice" replace />} />
         </Routes>
       </div>
