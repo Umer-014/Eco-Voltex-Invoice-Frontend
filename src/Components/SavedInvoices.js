@@ -236,24 +236,49 @@ const SavedInvoices = () => {
     return newTotal.toFixed(2);
   };
 
-  const printInvoice = (invoiceId) => {
-    const invoice = filteredInvoices.find((inv) => inv._id === invoiceId);
+  const openInvoiceWindow = async (invoiceId, shouldPrint = false) => {
+    const invoice = filteredInvoices.find(
+      (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId,
+    );
     if (!invoice) return;
-    const printWindow = window.open("", "", "height=800,width=600");
-    printWindow.document.write(getInvoiceHtml(invoice));
+
+    const printWindow = window.open("", "", "width=800,height=900");
+    if (!printWindow) {
+      alert("Please allow pop-ups to open the invoice.");
+      return;
+    }
+
+    printWindow.document.write("<p>Loading invoice...</p>");
     printWindow.document.close();
+
+    try {
+      const response = await api.get(`/invoices/${invoice.invoiceNumber}`);
+      const fullInvoice = response.data || invoice;
+
+      printWindow.document.open();
+      printWindow.document.write(getInvoiceHtml(fullInvoice));
+      printWindow.document.close();
+
+      if (shouldPrint) {
+        printWindow.onload = () => {
+          printWindow.print();
+          printWindow.onafterprint = () => printWindow.close();
+        };
+      }
+    } catch (error) {
+      console.error("Failed to load invoice for printing:", error);
+      printWindow.document.open();
+      printWindow.document.write("<p>Failed to load invoice details.</p>");
+      printWindow.document.close();
+    }
+  };
+
+  const printInvoice = (invoiceId) => {
+    openInvoiceWindow(invoiceId);
   };
 
   const downloadInvoice = (invoiceId) => {
-    const invoice = filteredInvoices.find((inv) => inv._id === invoiceId);
-    if (!invoice) return;
-    const printWindow = window.open("", "", "width=800,height=900");
-    printWindow.document.write(getInvoiceHtml(invoice));
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.onafterprint = () => printWindow.close();
-    };
+    openInvoiceWindow(invoiceId, true);
   };
 
   return (

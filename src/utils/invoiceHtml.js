@@ -44,15 +44,22 @@ const getNotesList = (invoice) => {
 };
 
 export const getInvoiceHtml = (invoice, forPdf = false) => {
-  const serviceSubtotal = (invoice.services || []).reduce(
+  const services = Array.isArray(invoice.services) ? invoice.services : [];
+  const materials = Array.isArray(invoice.materials) ? invoice.materials : [];
+  const totalPrice = Number(invoice.totalPrice) || 0;
+  const discount = Number(invoice.discount) || 0;
+  const paidAmount = Number(invoice.paidAmount) || 0;
+  const remainingAmount = Number(invoice.remainingAmount) || 0;
+
+  const serviceSubtotal = services.reduce(
     (sum, service) =>
       sum + (Number(service.price) || 0) * (Number(service.quantity) || 0),
     0,
   );
 
   const materialSubtotal =
-    invoice.hasMaterial && Array.isArray(invoice.materials)
-      ? invoice.materials.reduce(
+    invoice.hasMaterial && materials.length > 0
+      ? materials.reduce(
           (sum, material) =>
             sum +
             (Number(material.price) || 0) * (Number(material.quantity) || 0),
@@ -286,7 +293,7 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
               })}</p>
               <p><strong>Payment Mode:</strong> ${invoice.paymentOption}</p>
               ${
-                invoice.remainingAmount === 0
+                remainingAmount === 0
                   ? `
               <div>
                 <p><strong>Paid Date:</strong> ${
@@ -336,7 +343,7 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 </tr>
               </thead>
               <tbody>
-                ${invoice.services
+                ${services
                   .map(
                     (service, index) => `
                   <tr>
@@ -362,8 +369,7 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
           </div>
           ${
             invoice.hasMaterial &&
-            Array.isArray(invoice.materials) &&
-            invoice.materials.length > 0
+            materials.length > 0
               ? `
           <p><strong>Materials</strong></p>
           <div class="invoice-details">
@@ -378,7 +384,7 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 </tr>
               </thead>
               <tbody>
-                ${invoice.materials
+                ${materials
                   .map(
                     (material, index) => `
                   <tr>
@@ -414,8 +420,8 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                 <tr>
                   <td class="label">Sub Total</td>
                   <td class="value">£${calculateTotalBeforeDiscount(
-                    invoice.totalPrice,
-                    invoice.discount,
+                    totalPrice,
+                    discount,
                   )}</td>
                 </tr>
                 <tr>
@@ -423,26 +429,26 @@ export const getInvoiceHtml = (invoice, forPdf = false) => {
                   <td class="value">£0.00</td>
                 </tr>
                 ${
-                  invoice.discount > 0
+                  discount > 0
                     ? `<tr>
                         <td class="label">Discount</td>
-                        <td class="value">£${invoice.discount.toFixed(2)}</td>
+                        <td class="value">£${discount.toFixed(2)}</td>
                       </tr>`
                     : ""
                 }
                 <tr>
                   <td class="label total-row">Total</td>
-                  <td class="value total-row">£${invoice.totalPrice.toFixed(
+                  <td class="value total-row">£${totalPrice.toFixed(
                     2,
                   )}</td>
                 </tr>
                 <tr>
                   <td class="label">Amount Paid</td>
-                  <td class="value">£${invoice.paidAmount.toFixed(2)}</td>
+                  <td class="value">£${paidAmount.toFixed(2)}</td>
                 </tr>
                 <tr>
                   <td class="label due-row">Amount Due</td>
-                  <td class="value due-row">£${invoice.remainingAmount.toFixed(
+                  <td class="value due-row">£${remainingAmount.toFixed(
                     2,
                   )}</td>
                 </tr>

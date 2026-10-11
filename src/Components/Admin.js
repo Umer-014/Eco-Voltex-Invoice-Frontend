@@ -535,7 +535,7 @@ export default function Admin() {
     }
   };
 
-  const printInvoice = (invoiceId) => {
+  const printInvoice = async (invoiceId) => {
     const invoice = invoices.find(
       (inv) => inv._id === invoiceId || inv.invoiceNumber === invoiceId,
     );
@@ -543,9 +543,29 @@ export default function Admin() {
       alert("Invoice not found for printing");
       return;
     }
+
     const printWindow = window.open("", "", "height=800,width=600");
-    printWindow.document.write(getInvoiceHtml(invoice));
+    if (!printWindow) {
+      alert("Please allow pop-ups to open the invoice.");
+      return;
+    }
+
+    printWindow.document.write("<p>Loading invoice...</p>");
     printWindow.document.close();
+
+    try {
+      const response = await api.get(`/invoices/${invoice.invoiceNumber}`);
+      const fullInvoice = response.data || invoice;
+
+      printWindow.document.open();
+      printWindow.document.write(getInvoiceHtml(fullInvoice));
+      printWindow.document.close();
+    } catch (error) {
+      console.error("Failed to load invoice for printing:", error);
+      printWindow.document.open();
+      printWindow.document.write("<p>Failed to load invoice details.</p>");
+      printWindow.document.close();
+    }
   };
 
   return (
