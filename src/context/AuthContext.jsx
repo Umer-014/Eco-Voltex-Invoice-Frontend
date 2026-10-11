@@ -19,10 +19,17 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     const r = await api.post('/auth/login', { username, password });
+    // Returns { requires_otp: true } if password is correct and email is sent
+    return r.data;
+  };
+
+  const verifyOtp = async (username, otp) => {
+    const r = await api.post('/auth/verify-otp', { username, otp });
     if (r.data.token) {
       localStorage.setItem('eco_token', r.data.token);
+      setUser(r.data.user);
     }
-    setUser(r.data.user);
+    return r.data;
   };
 
   const logout = async () => { 
@@ -33,5 +40,5 @@ export function AuthProvider({ children }) {
     setUser(null); 
   };
 
-  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, login, verifyOtp, logout }}>{children}</Ctx.Provider>;
 }
