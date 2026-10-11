@@ -4,6 +4,7 @@ import InvoiceCreate from "./InvoiceCreate";
 import SavedInvoices from "./SavedInvoices";
 import QuoteCreate from "./Quotation/QuoteCreate";
 import SavedQuotes from "./Quotation/SavedQuotes";
+import Analytics from "./Analytics";
 import Admin from "./Admin";
 import Login from "./Login";
 import { useAuth } from "../context/AuthContext";
@@ -93,6 +94,15 @@ const Main = () => {
                 Admin
               </NavLink>
             </li>
+            <li className="navbar-item">
+              <NavLink
+                to="/analytics"
+                className="navbar-link"
+                onClick={closeMenu}
+              >
+                Analytics
+              </NavLink>
+            </li>
 
             {/* Logout Button inside Navbar */}
             <li className="navbar-item mobile-logout-container">
@@ -115,7 +125,9 @@ const Main = () => {
           <Route path="/create-invoice" element={<InvoiceCreate />} />
           <Route path="/saved-invoices" element={<SavedInvoices />} />
           <Route path="/create-quote" element={<QuoteCreate />} />
-          <Route path="/saved-quotes" element={<SavedQuotes />} />          <Route path="/admin" element={<Admin />} />
+          <Route path="/saved-quotes" element={<SavedQuotes />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="*" element={<Navigate to="/create-invoice" replace />} />
         </Routes>
       </div>
