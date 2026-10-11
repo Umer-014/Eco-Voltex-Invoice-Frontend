@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import api from "../lib/lib";
 import { getInvoiceHtml } from "../utils/invoiceHtml";
 import "./SavedInvoices.css";
@@ -113,17 +113,7 @@ const SavedInvoices = () => {
 
   const pdfContentRef = useRef(null);
 
-  useEffect(() => {
-    fetchInvoices(1);
-  }, [
-    searchWorkType,
-    searchInvoiceNumber,
-    searchName,
-    selectedDate,
-    selectedMonth,
-  ]);
-
-  const fetchInvoices = async (pageNumber = 1) => {
+  const fetchInvoices = useCallback(async (pageNumber = 1) => {
     try {
       setServerLoading(true);
       setLoading(true);
@@ -167,7 +157,17 @@ const SavedInvoices = () => {
       setLoading(false);
       setServerLoading(false);
     }
-  };
+  }, [
+    searchInvoiceNumber,
+    searchName,
+    searchWorkType,
+    selectedMonth,
+    selectedDate,
+  ]);
+
+  useEffect(() => {
+    fetchInvoices(1);
+  }, [fetchInvoices]);
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {

@@ -1,5 +1,5 @@
 import api from "../lib/lib";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getInvoiceHtml } from "../utils/invoiceHtml";
 
 // Shared smart keywords matching your work type filter logic
@@ -136,7 +136,7 @@ export default function Admin() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
-  const fetchInvoices = async (pageNumber = 1) => {
+  const fetchInvoices = useCallback(async (pageNumber = 1) => {
     try {
       setLoadingInvoices(true);
 
@@ -197,7 +197,16 @@ export default function Admin() {
     } finally {
       setLoadingInvoices(false);
     }
-  };
+  }, [
+    selectedPeriod,
+    customStart,
+    customEnd,
+    searchQuery,
+    selectedDate,
+    selectedMonth,
+    searchWorkType,
+    showOnlyUnpaid,
+  ]);
 
   useEffect(() => {
     const today = new Date();
@@ -217,16 +226,7 @@ export default function Admin() {
 
   useEffect(() => {
     fetchInvoices(1);
-  }, [
-    selectedPeriod,
-    customStart,
-    customEnd,
-    searchQuery,
-    searchWorkType,
-    selectedDate,
-    selectedMonth,
-    showOnlyUnpaid,
-  ]);
+  }, [fetchInvoices]);
 
   const getPeriodRange = () => {
     switch (selectedPeriod) {
