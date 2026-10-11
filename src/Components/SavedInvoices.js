@@ -89,20 +89,9 @@ const workTypeKeywords = {
     "electrical installation condition report",
     "electrical installation check",
   ],
-  eic: [
-    "eic",
-    "electrical installation certificate",
-  ],
-  pat: [
-    "pat",
-    "portable appliance testing",
-    "appliance testing",
-  ],
-  gas: [
-    "gas",
-    "gas safety",
-    "domestic gas safety",
-  ],
+  eic: ["eic", "electrical installation certificate"],
+  pat: ["pat", "portable appliance testing", "appliance testing"],
+  gas: ["gas", "gas safety", "domestic gas safety"],
 };
 
 const SavedInvoices = () => {
@@ -112,7 +101,9 @@ const SavedInvoices = () => {
   const [searchInvoiceNumber, setSearchInvoiceNumber] = useState("");
   const [searchName, setSearchName] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
+  const [serverLoading, setServerLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -123,18 +114,58 @@ const SavedInvoices = () => {
   const pdfContentRef = useRef(null);
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    fetchInvoices(1);
+  }, [
+    searchWorkType,
+    searchInvoiceNumber,
+    searchName,
+    selectedDate,
+    selectedMonth,
+  ]);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (pageNumber = 1) => {
     try {
+      setServerLoading(true);
       setLoading(true);
-      const response = await api.get("/invoices");
-      setInvoices(response.data);
+
+      const params = {
+        view: "saved",
+        page: pageNumber,
+        limit: 20,
+      };
+
+      if (searchInvoiceNumber.trim()) {
+        params.invoiceNumber = searchInvoiceNumber.trim();
+      }
+
+      if (searchName.trim()) {
+        params.clientName = searchName.trim();
+      }
+
+      if (searchWorkType !== "All Work Types") {
+        params.workType = searchWorkType;
+      }
+
+      if (selectedMonth) {
+        params.month = selectedMonth;
+      }
+
+      if (selectedDate) {
+        params.date = selectedDate;
+      }
+
+      const response = await api.get("/invoices/filter", { params });
+
+      setInvoices(response.data.invoices || []);
+      setPagination(response.data.pagination || null);
+      setPage(pageNumber);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      console.error("Error fetching filtered invoices:", error);
+      setInvoices([]);
+      setPagination(null);
     } finally {
       setLoading(false);
+      setServerLoading(false);
     }
   };
 
@@ -388,6 +419,33 @@ const SavedInvoices = () => {
           </div>
         </>
       )}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 12,
+          margin: 20,
+        }}
+      >
+        <button
+          disabled={!pagination?.hasPreviousPage || serverLoading}
+          onClick={() => fetchInvoices(page - 1)}
+        >
+          Previous
+        </button>
+
+        <span>
+          Page {pagination?.page || 1} of {pagination?.totalPages || 1}
+        </span>
+
+        <button
+          disabled={!pagination?.hasNextPage || serverLoading}
+          onClick={() => fetchInvoices(page + 1)}
+        >
+          Next
+        </button>
+      </div>
 
       <div
         ref={pdfContentRef}
