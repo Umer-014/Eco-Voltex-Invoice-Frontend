@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import api from "../../lib/lib";
+import logo from "../../assets/logo.jpg";
+import certificateLogo from "../../assets/Certification.jpg";
 import "./SavedQuotes.css";
 
 // Shared smart keywords matching your invoice filters
@@ -205,6 +207,8 @@ const SavedQuotes = () => {
 
   /* ----- print/preview html (same skeleton, adapted for quotes) ----- */
   const getQuoteHtml = (quote) => {
+    const services = Array.isArray(quote.services) ? quote.services : [];
+    const materials = Array.isArray(quote.materials) ? quote.materials : [];
     const {
       servicesTotal,
       materialsTotal,
@@ -214,7 +218,7 @@ const SavedQuotes = () => {
       deposit25,
     } = computeTotals(quote);
 
-    const servicesRows = (quote.services || [])
+    const servicesRows = services
       .map(
         (s, i) => `
           <tr>
@@ -230,7 +234,7 @@ const SavedQuotes = () => {
       )
       .join("");
 
-    const materialsRows = (quote.materials || [])
+    const materialsRows = materials
       .map(
         (m, i) => `
           <tr>
@@ -246,6 +250,11 @@ const SavedQuotes = () => {
       )
       .join("");
 
+    const notesList = String(quote.notes || "")
+      .split(/\r?\n|•|·|\u2022|;|\|/)
+      .map((part) => part.replace(/^[\s\-*]+/, "").trim())
+      .filter(Boolean);
+
     const discountRow =
       discountFlat > 0
         ? `<tr><td class="label">Discount (flat)</td><td class="value">−£${discountFlat.toFixed(
@@ -258,231 +267,227 @@ const SavedQuotes = () => {
 <head>
   <title>Quotation</title>
   <style>
-    body { font-family: Arial, sans-serif; margin:0; padding:0; }
-    .invoice-container { width:100%; max-width:800px; margin:auto; padding:20px; border:1px solid #ddd; box-sizing:border-box; }
-    .header { color:black; text-align:center; }
-    .header h1 { margin:0; color:black; font-size:28px; }
-    .header p { margin:5px 0; font-size:14px; }
-
-    .client-info, .invoice-details { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border:3px solid #ddd; padding:10px; }
-    .client-info p { margin:5px 0; }
-
-    .table { width:100%; border-collapse:collapse; margin-top:10px; }
-    .table th, .table td { border:2px solid black; padding:10px; text-align:left; }
-    .table th { background-color:#f4f4f4; }
-
-    .footer { color:black; text-align:center; }
-    .footer p:last-child { font-size:12px; color:#666; }
-
-    .totals-wrapper { display:flex; justify-content:space-between; align-items:flex-start; margin-top:20px; }
-    .totals-table { width:50%; border-collapse:collapse; font-size:16px; margin-left:auto; }
-    .totals-table td { padding:10px; border:1px solid white; text-align:left; }
-    .totals-table .label { background-color:#f9f9f9; text-align:left; font-weight:bold; }
-    .totals-table .value { text-align:left; font-weight:bold; color:#333; }
-    .totals-table .total-row { font-weight:bold; }
-
-    .deposit-box {
-      margin-top: 16px;
-      padding: 12px;
-      border: 2px dashed #333;
-      font-size: 14px;
-    }
-
+    :root { --header-h: 176px; --footer-h: 62px; }
+    html, body { height: 100%; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #000; }
+    .quote-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 0 20px; box-sizing: border-box; }
+    .print-header { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: #f9f9f9; height: var(--header-h); box-sizing: border-box; overflow: hidden; }
+    .print-header .fixed-inner { max-width: 800px; margin: 0 auto; padding: 14px 20px 10px; box-sizing: border-box; }
+    .header-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 20px; }
+    .header-copy { grid-column: 2; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+    .header-copy h1 { margin: 0; font-size: 28px; text-align: center; }
+    .header-copy p { margin: 5px 0; font-size: 14px; text-align: center; }
+    .header-copy a { color: #000; text-decoration: none; }
+    .header-logo { grid-column: 3; display: flex; justify-content: flex-end; align-items: flex-end; height: 100%; }
+    .logo { max-width: 180px; max-height: 100px; display: block; transform: translateY(2px); }
+    .page-layout { width: 100%; border-collapse: collapse; }
+    .page-layout > thead > tr > td, .page-layout > tbody > tr > td, .page-layout > tfoot > tr > td { padding: 0; border: none; }
+    .page-layout > thead { display: table-header-group; }
+    .page-layout > tfoot { display: table-footer-group; }
+    .header-space { height: calc(var(--header-h) + 6px); }
+    .footer-space { height: calc(var(--footer-h) + 8px); }
+    .client-info { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border: 2px solid #000; padding: 10px; width: 100%; box-sizing: border-box; gap: 10px; }
+    .client-info p { margin: 5px 0; line-height: 1.4; }
+    .client-details { flex: 0 0 60%; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+    .quote-meta { flex: 0 0 40%; min-width: 0; text-align: right; overflow-wrap: anywhere; word-break: break-word; }
+    .payment-section { margin-bottom: 12px; border: 2px solid #000; padding: 10px 12px 8px; box-sizing: border-box; width: 100%; }
+    .payment-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; font-size: 14px; line-height: 1.5; }
+    .payment-details p { margin: 0; overflow-wrap: anywhere; word-break: break-word; }
+    .quote-details { display: block; margin-bottom: 10px; padding: 0; width: 100%; box-sizing: border-box; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 10px; box-sizing: border-box; }
+    .table th, .table td { border: 2px solid #000; padding: 10px; text-align: left; }
+    .table th { background-color: #f4f4f4; }
+    .totals-wrapper { position: relative; min-height: 210px; margin-top: 10px; padding: 0 10px; }
+    .totals-table { position: absolute; top: 0; right: 10px; width: 42%; border-collapse: collapse; table-layout: fixed; font-size: 15px; margin: 0; }
+    .totals-table td { padding: 6px; border: 1px solid #fff; text-align: left; }
+    .totals-table .label { width: 58%; background-color: #f9f9f9; font-weight: bold; }
+    .totals-table .value { width: 42%; text-align: right; font-weight: bold; color: #000; }
+    .totals-table .total-row { font-weight: bold; }
+    .left-logos { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 25px; width: auto; }
+    .logo-container-1 img { width: 220px; height: 100px; object-fit: contain; }
+    .notes-box { margin-top: 18px; border: 2px solid #000; padding: 10px 12px; box-sizing: border-box; width: 100%; }
+    .notes-box h3 { margin: 0 0 8px; font-size: 16px; }
+    .notes-box ul { margin: 0; padding-left: 18px; }
+    .notes-box li { display: block; margin: 4px 0; line-height: 1.4; white-space: normal; }
+    .quote-message { margin-top: 16px; padding: 12px; border: 2px dashed #333; font-size: 14px; line-height: 1.45; }
+    .print-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: #fff; border-top: 1px solid #ddd; height: var(--footer-h); box-sizing: border-box; overflow: hidden; }
+    .print-footer .fixed-inner { max-width: 800px; height: 100%; margin: 0 auto; padding: 0 20px; box-sizing: border-box; text-align: center; display: flex; align-items: center; justify-content: center; }
+    .thank-you { font-weight: bold; margin: 0; }
+    .table tr, .client-info, .totals-wrapper, .payment-section, .notes-box { break-inside: avoid; page-break-inside: avoid; }
+    @page { size: A4; margin: 0 0 12mm 0; }
     @media print {
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .header { color:black !important; }
       .table th { background-color: white !important; }
-      .client-info, .invoice-details { border:3px solid #ddd !important; }
-      .footer { color:black !important; }
+      .print-header, .print-footer { position: fixed; }
     }
-      .payment-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border: 3px solid #ddd;
-            padding: 10px;
-          }
-          .payment-details {
-            font-size: 14px;
-            line-height: 1.5;
-          }
-          .payment-details p {
-            margin: 5px 0;
-          }
-          .logo {
-            max-width: 150px;
-            max-height: 100px;
-          }
-            /* Left-side logos layout */
-.left-logos {
-  display: flex;
-  flex-direction: row;      /* side by side */
-  justify-content: flex-start;
-  align-items: center;
-  gap: 25px;               /* space between logos */
-    width: 40%;               /* covers left side */
-}
-
-/* Each logo box */
-.logo-container {
-  flex: 1;      
-             /* equal width for both logos */
-  text-align: left;
-}
-
-  .logo-container img {
-  width: 120%;
-  height: 100px;
-  
-}
-  .logo-container-1 img {
-  width: 120%;
-  height: 100px;
-  
-}
   </style>
 </head>
 <body>
-  <div class="invoice-container">
-    <!-- Header -->
-    <div class="header">
-      <h1>Eco Voltex Ltd</h1>
-      <p>Powering the Future with Sustainable Solutions</p>
-      <p><a href="https://www.ecovoltex.co.uk/" target="_blank">www.ecovoltex.co.uk</a></p>
-      <p><strong>Phone:</strong> +44 7930 558824</p>
+  <div class="print-header">
+    <div class="fixed-inner">
+      <div class="header-row">
+        <div class="header-copy">
+          <h1>Eco Voltex Ltd</h1>
+          <p>Powering the Future with Sustainable Solutions</p>
+          <p style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin: 5px 0;">
+            <span><strong>🌐</strong> www.ecovoltex.co.uk</span>
+            <span style="display:inline-block;">|</span>
+            <span><strong>✉</strong> info@ecovoltex.co.uk</span>
+            <span style="display:inline-block;">|</span>
+            <span><strong>☏</strong> +44 7930 558824</span>
+          </p>
+          <p>5-7 Vine Street, Uxbridge London, UB81QE, United Kingdom</p>
+        </div>
+        <div class="header-logo">
+          <img src="${logo}" alt="Eco Voltex Logo" class="logo" />
+        </div>
+      </div>
     </div>
-    <!-- Payment Instructions with Logo -->
-          <p><strong>Payment Instructions</strong></p>
-          <div class="payment-section">
-            <div class="payment-details">
-              <p><strong>Account Name:</strong> Eco Voltex</p>
-              <p><strong>Account Number:</strong> 00347566</p>
-              <p><strong>Sort Code:</strong> 20-19-97</p>
-            </div>
-            <img src="${require("../../assets/logo.jpg")}" alt="Eco Voltex Logo" class="logo" />
-          </div>
+  </div>
 
-    <!-- Client Info -->
-    <p><strong>Issue to</strong></p>
-    <div class="client-info">
-      <div>
-        <p><strong>Name:</strong> ${quote.clientName || ""}</p>
-        <p><strong>Address:</strong> ${
-          quote.clientAddress || "Address not provided"
-        }</p>
-        <p>${quote.postCode || ""}</p>
+  <div class="quote-container">
+    <table class="page-layout">
+      <thead><tr><td><div class="header-space"></div></td></tr></thead>
+      <tfoot><tr><td><div class="footer-space"></div></td></tr></tfoot>
+      <tbody><tr><td>
+        <p><strong>Issue to</strong></p>
+        <div class="client-info">
+          <div class="client-details">
+            <p><strong>Name:</strong> ${quote.clientName || ""}</p>
+            ${
+              quote.clientPhone
+                ? `<p>${
+                    quote.clientPhone.includes("@")
+                      ? `<strong>Email:</strong> ${quote.clientPhone}`
+                      : `<strong>Phone:</strong> ${quote.clientPhone}`
+                  }</p>`
+                : ""
+            }
+            <p><strong>Address:</strong> ${
+              quote.clientAddress || "Address not provided"
+            } ${quote.postCode || ""}</p>
+            ${
+              quote.siteAddress || quote.sitePostCode
+                ? `<div style="margin-top: 10px;">
+                    <p><strong>Site Address:</strong> ${quote.siteAddress || ""} ${quote.sitePostCode || ""}</p>
+                  </div>`
+                : ""
+            }
+          </div>
+          <div class="quote-meta">
+            
+            <p><strong>Quote Number:</strong> ${quote.quoteNumber || ""}</p>
+            <p><strong>Issued Date:</strong> ${new Date(
+              quote.createdAt,
+            ).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}</p>
+            <p><strong>Valid Until:</strong> ${
+              quote.validUntil
+                ? new Date(quote.validUntil).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "-"
+            }</p>
+            ${quote.category ? `<p><strong>Category:</strong> ${quote.category}</p>` : ""}
+          </div>
+        </div>
+
+        <p><strong>Payment Details</strong></p>
+        <div class="payment-section">
+          <div class="payment-details">
+            <p><strong>Bank Name:</strong> Barclays Bank</p>
+            <p><strong>Account Name:</strong> Eco Voltex Ltd</p>
+            <p><strong>Account Number:</strong> 00347566</p>
+            <p><strong>Sort Code:</strong> 20-19-97</p>
+          </div>
+        </div>
+
+        <p><strong>Services</strong></p>
+        <div class="quote-details">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>No.</th><th>Description</th><th>Unit Price</th><th>Quantity</th><th>Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${servicesRows || `<tr><td colspan="5">No services</td></tr>`}
+              <tr>
+                <td colspan="4" style="text-align:right; font-weight:bold;">Service Subtotal</td>
+                <td style="font-weight:bold;">£${servicesTotal.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         ${
-          quote.clientPhone
-            ? `<p><strong>Phone No/Email:</strong> ${quote.clientPhone}</p>`
+          materials.length
+            ? `
+          <p><strong>Materials</strong></p>
+          <div class="quote-details">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>No.</th><th>Description</th><th>Unit Price</th><th>Quantity</th><th>Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${materialsRows}
+                <tr>
+                  <td colspan="4" style="text-align:right; font-weight:bold;">Material Subtotal</td>
+                  <td style="font-weight:bold;">£${materialsTotal.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>`
             : ""
         }
-      </div>
-      <div style="text-align:right; flex:1;">
-        <p><strong>Quote Number:</strong> ${quote.quoteNumber || ""}</p>
-        <p><strong>Issued Date:</strong> ${new Date(
-          quote.createdAt,
-        ).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })}</p>
-        <p><strong>Valid Until:</strong> ${
-          quote.validUntil
-            ? new Date(quote.validUntil).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })
-            : "-"
-        }</p>
-      </div>
-    </div>
 
-    <!-- Services -->
-    <p><strong>Services</strong></p>
-    <div class="invoice-details">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>No.</th><th>Description</th><th>Unit Price</th><th>Qty</th><th>Line Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${servicesRows || `<tr><td colspan="5">No services</td></tr>`}
-        </tbody>
-      </table>
-    </div>
+        <div class="totals-wrapper">
+          <div class="left-logos">
+            <div class="logo-container-1">
+              <img src="${certificateLogo}" alt="Eco Voltex Certificate" />
+            </div>
+          </div>
+          <table class="totals-table">
+            <tbody>
+              <tr><td class="label">Sub Total</td><td class="value">£${subtotal.toFixed(2)}</td></tr>
+              <tr><td class="label">VAT</td><td class="value">£0.00</td></tr>
+              ${discountRow}
+              <tr><td class="label total-row">Total</td><td class="value total-row">£${total.toFixed(2)}</td></tr>
+              <tr><td class="label">Deposit to Start (25%)</td><td class="value">£${deposit25.toFixed(2)}</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-    <!-- Materials (only if exist) -->
-    ${
-      (quote.materials || []).length
-        ? `
-      <p><strong>Materials</strong></p>
-      <div class="invoice-details">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>No.</th><th>Description</th><th>Unit Price</th><th>Qty</th><th>Line Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${materialsRows}
-          </tbody>
-        </table>
-      </div>`
-        : ""
-    }
+        <div class="quote-message">
+          This is a quotation, not a VAT invoice. Work starts after a 25% deposit using your Quote Number as reference.
+        </div>
 
-    <!-- Totals -->
-    <div class="totals-wrapper">
-    <div class="left-logos">
-  <div class="logo-container-1">
-    <img src="${require("../../assets/Certification.jpg")}" alt="UKAS Logo" />
+        ${
+          notesList.length
+            ? `
+          <p><strong>Notes</strong></p>
+          <div class="notes-box">
+            <ul>
+              ${notesList.map((note) => `<li>${note}</li>`).join("")}
+            </ul>
+          </div>`
+            : ""
+        }
+      </td></tr></tbody>
+    </table>
   </div>
-</div>
-      <table class="totals-table">
-  <tbody>
-    <tr>
-      <td class="label">Services Subtotal</td>
-      <td class="value">£${servicesTotal.toFixed(2)}</td>
-    </tr>
 
-    ${
-      (quote.materials || []).length > 0
-        ? `<tr><td class="label">Materials Subtotal</td><td class="value">£${materialsTotal.toFixed(
-            2,
-          )}</td></tr>`
-        : ""
-    }
-
-    <tr>
-      <td class="label">Subtotal</td>
-      <td class="value">£${subtotal.toFixed(2)}</td>
-    </tr>
-
-    ${discountRow}
-
-    <tr>
-      <td class="label total-row">Total</td>
-      <td class="value total-row">£${total.toFixed(2)}</td>
-    </tr>
-
-    <tr>
-      <td class="label">Deposit to Start (25%)</td>
-      <td class="value">£${deposit25.toFixed(2)}</td>
-    </tr>
-  </tbody>
-</table>
-
+  <div class="print-footer">
+    <div class="fixed-inner">
+      <p class="thank-you">THANK YOU FOR YOUR BUSINESS!</p>
     </div>
-
-    <!-- Footer -->
-<div class="footer">
-  <p>Thank you for your business!</p>
-  <p>This is a quotation, not a VAT invoice. Work starts after a 25% deposit using your Quote Number as reference.</p>
-</div>
-
   </div>
 </body>
 </html>
@@ -493,6 +498,10 @@ const SavedQuotes = () => {
     const quote = filteredQuotes.find((q) => q._id === id);
     if (!quote) return;
     const w = window.open("", "", "width=900,height=1000");
+    if (!w) {
+      alert("Please allow pop-ups to open the quotation.");
+      return;
+    }
     w.document.write(getQuoteHtml(quote));
     w.document.close();
   };
@@ -501,6 +510,10 @@ const SavedQuotes = () => {
     const quote = filteredQuotes.find((q) => q._id === id);
     if (!quote) return;
     const w = window.open("", "", "width=900,height=1000");
+    if (!w) {
+      alert("Please allow pop-ups to open the quotation.");
+      return;
+    }
     w.document.write(getQuoteHtml(quote));
     w.document.close();
     w.onload = () => {
