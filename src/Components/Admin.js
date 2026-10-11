@@ -78,7 +78,7 @@ const workTypeKeywords = {
     "zone",
     "loop",
   ],
-    epc: [
+  epc: [
     "epc",
     "energy performance certificate",
     "domestic energy rating",
@@ -89,26 +89,23 @@ const workTypeKeywords = {
     "electrical installation condition report",
     "electrical installation check",
   ],
-  eic: [
-    "eic",
-    "electrical installation certificate",
-  ],
-  pat: [
-    "pat",
-    "portable appliance testing",
-    "appliance testing",
-  ],
-  gas: [
-    "gas",
-    "gas safety",
-    "domestic gas safety",
-  ],
+  eic: ["eic", "electrical installation certificate"],
+  pat: ["pat", "portable appliance testing", "appliance testing"],
+  gas: ["gas", "gas safety", "domestic gas safety"],
 };
 
 export default function Admin() {
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(true);
   const [globalActionLoading, setGlobalActionLoading] = useState(false);
+
+  const [pagination, setPagination] = useState(null);
+  const [invoiceSummary, setInvoiceSummary] = useState({
+    totalInvoices: 0,
+    totalInvoiceValue: 0,
+    totalRevenue: 0,
+    unpaidCount: 0,
+  });
 
   // filters + modal state
   const [searchQuery, setSearchQuery] = useState("");
@@ -140,21 +137,71 @@ export default function Admin() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (pageNumber = 1) => {
     try {
       setLoadingInvoices(true);
-      const r = await api.get("/invoices");
-      setInvoices(r.data || []);
-    } catch (err) {
-      console.error("Error fetching invoices", err);
+
+      const params = {
+        view: "admin",
+        page: pageNumber,
+        limit: 20,
+      };
+
+      // Reporting period
+      if (selectedPeriod === "FY_2024_2025") {
+        params.startDate = "2024-10-10";
+        params.endDate = "2025-10-31";
+      } else if (selectedPeriod === "FY_2025_2026") {
+        params.startDate = "2025-11-01";
+        params.endDate = "2026-10-31";
+      } else if (selectedPeriod === "custom" && customStart && customEnd) {
+        params.startDate = customStart;
+        params.endDate = customEnd;
+      }
+
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+
+      if (selectedDate) {
+        params.date = selectedDate;
+      }
+
+      if (selectedMonth !== "all") {
+        params.monthNumber = selectedMonth;
+      }
+
+      if (searchWorkType !== "All Work Types") {
+        params.workType = searchWorkType;
+      }
+
+      if (showOnlyUnpaid) {
+        params.unpaidOnly = "true";
+      }
+
+      const response = await api.get("/invoices/filter", {
+        params,
+      });
+
+      setInvoices(response.data.invoices || []);
+      setPagination(response.data.pagination || null);
+      setInvoiceSummary(
+        response.data.summary || {
+          totalInvoices: 0,
+          totalInvoiceValue: 0,
+          totalRevenue: 0,
+          unpaidCount: 0,
+        },
+      );
+      setVisibleCount(20);
+    } catch (error) {
+      console.error("Error fetching filtered invoices:", error);
     } finally {
       setLoadingInvoices(false);
     }
   };
 
   useEffect(() => {
-    fetchInvoices();
-
     const today = new Date();
     const fy2024Start = new Date("2024-10-10");
     const fy2024End = new Date("2025-10-31");
@@ -169,6 +216,19 @@ export default function Admin() {
       setSelectedPeriod("all");
     }
   }, []);
+
+  useEffect(() => {
+    fetchInvoices(1);
+  }, [
+    selectedPeriod,
+    customStart,
+    customEnd,
+    searchQuery,
+    searchWorkType,
+    selectedDate,
+    selectedMonth,
+    showOnlyUnpaid,
+  ]);
 
   const getPeriodRange = () => {
     switch (selectedPeriod) {
@@ -208,18 +268,11 @@ export default function Admin() {
     );
   }, [invoices, periodStart, periodEnd]);
 
-  const totalInvoices = periodInvoices.length;
-  const TotalInvoiceValue = periodInvoices.reduce(
-    (sum, inv) => sum + (Number(inv.totalPrice) || 0),
-    0,
-  );
-  const unpaidCount = periodInvoices.filter(
-    (inv) => inv.remainingAmount > 0,
-  ).length;
-  const TotalRevenue = periodInvoices.reduce(
-    (sum, inv) => sum + (Number(inv.paidAmount) || 0),
-    0,
-  );
+  const totalInvoices = invoiceSummary.totalInvoices;
+  const TotalInvoiceValue = invoiceSummary.totalInvoiceValue;
+  const TotalRevenue = invoiceSummary.totalRevenue;
+
+  const unpaidCount = invoiceSummary.unpaidCount;
 
   // Filtering logic (search + work type + date + unpaid + period)
   const filteredInvoices = periodInvoices.filter((inv) => {
@@ -241,7 +294,9 @@ export default function Admin() {
     const textMatch =
       !normalizedQuery ||
       searchTextValues.some((value) =>
-        String(value || "").toLowerCase().includes(normalizedQuery),
+        String(value || "")
+          .toLowerCase()
+          .includes(normalizedQuery),
       );
 
     const dateMatch = selectedDate
@@ -256,16 +311,19 @@ export default function Admin() {
     const unpaidMatch = showOnlyUnpaid ? inv.remainingAmount > 0 : true;
 
     const selectedWorkType = (searchWorkType || "").trim();
-    const hasWorkTypeFilter = selectedWorkType && selectedWorkType !== "All Work Types";
+    const hasWorkTypeFilter =
+      selectedWorkType && selectedWorkType !== "All Work Types";
 
     let matchesWorkType = true;
     if (hasWorkTypeFilter) {
-      const targetKeywords = workTypeKeywords[selectedWorkType.toLowerCase()] || [
-        selectedWorkType.toLowerCase(),
-      ];
+      const targetKeywords = workTypeKeywords[
+        selectedWorkType.toLowerCase()
+      ] || [selectedWorkType.toLowerCase()];
       const workTypeText = [
         ...(Array.isArray(inv.workType) ? inv.workType : []),
-        ...(Array.isArray(inv.services) ? inv.services.map((item) => item.name || "") : []),
+        ...(Array.isArray(inv.services)
+          ? inv.services.map((item) => item.name || "")
+          : []),
       ]
         .join(" ")
         .toLowerCase();
@@ -276,7 +334,9 @@ export default function Admin() {
     }
 
     if (hasWorkTypeFilter && normalizedQuery) {
-      return (dateMatch && monthMatch && unpaidMatch && (matchesWorkType || textMatch));
+      return (
+        dateMatch && monthMatch && unpaidMatch && (matchesWorkType || textMatch)
+      );
     }
 
     if (hasWorkTypeFilter) {
