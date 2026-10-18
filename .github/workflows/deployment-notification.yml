@@ -2,6 +2,10 @@
 name: Vercel Deployment Email
 
 on:
+  push:
+    branches:
+      - staging
+
   repository_dispatch:
     types:
       - vercel.deployment.success
@@ -13,7 +17,9 @@ on:
       - vercel.deployment.pending
       - vercel.deployment.ignored
       - vercel.deployment.skipped
+
   workflow_dispatch:
+
 
 permissions:
   contents: read
