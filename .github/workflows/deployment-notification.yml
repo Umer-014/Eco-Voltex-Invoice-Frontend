@@ -10,6 +10,9 @@ on:
       - vercel.deployment.canceled
       - vercel.deployment.promoted
       - vercel.deployment.ready
+      - vercel.deployment.pending
+      - vercel.deployment.ignored
+      - vercel.deployment.skipped
   workflow_dispatch:
 
 permissions:
@@ -18,6 +21,7 @@ permissions:
 jobs:
   send-email:
     runs-on: ubuntu-latest
+
     steps:
       - name: Send deployment report to Gmail
         uses: dawidd6/action-send-mail@v3
@@ -28,17 +32,19 @@ jobs:
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_APP_PASSWORD }}
           to: ${{ secrets.SMTP_USER }}
-          from: Vercel Deployment Reports &lt;${{ secrets.SMTP_USER }}&gt;
-          subject: >-
-            [Vercel] ${{ github.event.action || 'Manual test' }}
-            - ${{ github.event.client_payload.name || github.repository }}
+          from: 'Vercel Deployment Reports <${{ secrets.SMTP_USER }}>'
+          subject: '[Vercel] ${{ github.event.action || ''Manual test'' }} - ${{ github.event.client_payload.project.name || github.repository }}'
           html_body: |
-            &lt;h2&gt;Vercel Deployment Report&lt;/h2&gt;
-            &lt;p&gt;&lt;b&gt;Repository:&lt;/b&gt; ${{ github.repository }}&lt;/p&gt;
-            &lt;p&gt;&lt;b&gt;Event:&lt;/b&gt; ${{ github.event.action || 'Manual test' }}&lt;/p&gt;
-            &lt;p&gt;&lt;b&gt;Project:&lt;/b&gt; ${{ github.event.client_payload.name || 'See deployment details' }}&lt;/p&gt;
-            &lt;p&gt;&lt;b&gt;Environment:&lt;/b&gt; ${{ github.event.client_payload.environment || 'Not provided' }}&lt;/p&gt;
-            &lt;p&gt;&lt;b&gt;Deployment URL:&lt;/b&gt;
-            &lt;a href="https://${{ github.event.client_payload.url }}"&gt;Open deployment&lt;/a&gt;&lt;/p&gt;
-            &lt;p&gt;&lt;b&gt;Commit / branch:&lt;/b&gt; See the linked deployment details in Vercel.&lt;/p&gt;
-            &lt;p&gt;&lt;a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"&gt;View GitHub workflow logs&lt;/a&gt;&lt;/p&gt;
+            <h2>Vercel Deployment Report</h2>
+            <p><b>Repository:</b> ${{ github.repository }}</p>
+            <p><b>Project:</b> ${{ github.event.client_payload.project.name || 'Not provided (manual test)' }}</p>
+            <p><b>Event:</b> ${{ github.event.action || 'Manual test' }}</p>
+            <p><b>Deployment status:</b> ${{ github.event.client_payload.state.type || 'Manual test — no deployment status' }}</p>
+            <p><b>Environment:</b> ${{ github.event.client_payload.environment || 'Not provided' }}</p>
+            <p><b>Branch:</b> ${{ github.event.client_payload.git.ref || 'Not provided' }}</p>
+            <p><b>Commit:</b> ${{ github.event.client_payload.git.shortSha || 'Not provided' }}</p>
+            <p><b>Commit SHA:</b> ${{ github.event.client_payload.git.sha || 'Not provided' }}</p>
+            <p><b>Deployment URL:</b>
+            <a href="${{ github.event.client_payload.url || 'https://vercel.com' }}">Open deployment</a></p>
+            <p><b>Deployment ID:</b> ${{ github.event.client_payload.id || 'Not provided' }}</p>
+            <p><a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View GitHub workflow logs</a></p>
