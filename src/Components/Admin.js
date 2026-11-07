@@ -220,11 +220,15 @@ export default function Admin() {
     const fy2024End = new Date("2025-10-31");
     const fy2025Start = new Date("2025-11-01");
     const fy2025End = new Date("2026-10-31");
+    const fy2026Start = new Date("2026-11-01");
+    const fy2026End = new Date("2027-10-31");
 
     if (today >= fy2024Start && today <= fy2024End) {
       setSelectedPeriod("FY_2024_2025");
     } else if (today >= fy2025Start && today <= fy2025End) {
       setSelectedPeriod("FY_2025_2026");
+    } else if (today >= fy2026Start && today <= fy2026End) {
+      setSelectedPeriod("FY_2026_2027");
     } else {
       setSelectedPeriod("all");
     }
@@ -698,6 +702,16 @@ export default function Admin() {
             }}
           >
             01 Nov 2025 → 31 Oct 2026
+          </button>
+          
+          <button
+            onClick={() => setSelectedPeriod("FY_2026_2027")}
+            style={{
+              ...pillBtn,
+              ...(selectedPeriod === "FY_2026_2027" ? pillActive : {}),
+            }}
+          >
+            01 Nov 2026 → 31 Oct 2027
           </button>
           <button
             onClick={() => setSelectedPeriod("custom")}
