@@ -136,77 +136,83 @@ export default function Admin() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
-  const fetchInvoices = useCallback(async (pageNumber = 1) => {
-    try {
-      setLoadingInvoices(true);
+  const fetchInvoices = useCallback(
+    async (pageNumber = 1) => {
+      try {
+        setLoadingInvoices(true);
 
-      const params = {
-        view: "admin",
-        page: pageNumber,
-        limit: 20,
-      };
+        const params = {
+          view: "admin",
+          page: pageNumber,
+          limit: 20,
+        };
 
-      // Reporting period
-      if (selectedPeriod === "FY_2024_2025") {
-        params.startDate = "2024-10-10";
-        params.endDate = "2025-10-31";
-      } else if (selectedPeriod === "FY_2025_2026") {
-        params.startDate = "2025-11-01";
-        params.endDate = "2026-10-31";
-      } else if (selectedPeriod === "custom" && customStart && customEnd) {
-        params.startDate = customStart;
-        params.endDate = customEnd;
+        // Reporting period
+        if (selectedPeriod === "FY_2024_2025") {
+          params.startDate = "2024-10-10";
+          params.endDate = "2025-10-31";
+        } else if (selectedPeriod === "FY_2025_2026") {
+          params.startDate = "2025-11-01";
+          params.endDate = "2026-10-31";
+        } else if (selectedPeriod === "FY_2026_2027") {
+          params.startDate = "2026-11-01";
+          params.endDate = "2027-10-31";
+        } else if (selectedPeriod === "custom" && customStart && customEnd) {
+          params.startDate = customStart;
+          params.endDate = customEnd;
+        }
+
+        if (searchQuery.trim()) {
+          params.search = searchQuery.trim();
+        }
+
+        if (selectedDate) {
+          params.date = selectedDate;
+        }
+
+        if (selectedMonth !== "all") {
+          params.monthNumber = selectedMonth;
+        }
+
+        if (searchWorkType !== "All Work Types") {
+          params.workType = searchWorkType;
+        }
+
+        if (showOnlyUnpaid) {
+          params.unpaidOnly = "true";
+        }
+
+        const response = await api.get("/invoices/filter", {
+          params,
+        });
+
+        setInvoices(response.data.invoices || []);
+        setInvoiceSummary(
+          response.data.summary || {
+            totalInvoices: 0,
+            totalInvoiceValue: 0,
+            totalRevenue: 0,
+            unpaidCount: 0,
+          },
+        );
+        setVisibleCount(20);
+      } catch (error) {
+        console.error("Error fetching filtered invoices:", error);
+      } finally {
+        setLoadingInvoices(false);
       }
-
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
-
-      if (selectedDate) {
-        params.date = selectedDate;
-      }
-
-      if (selectedMonth !== "all") {
-        params.monthNumber = selectedMonth;
-      }
-
-      if (searchWorkType !== "All Work Types") {
-        params.workType = searchWorkType;
-      }
-
-      if (showOnlyUnpaid) {
-        params.unpaidOnly = "true";
-      }
-
-      const response = await api.get("/invoices/filter", {
-        params,
-      });
-
-      setInvoices(response.data.invoices || []);
-      setInvoiceSummary(
-        response.data.summary || {
-          totalInvoices: 0,
-          totalInvoiceValue: 0,
-          totalRevenue: 0,
-          unpaidCount: 0,
-        },
-      );
-      setVisibleCount(20);
-    } catch (error) {
-      console.error("Error fetching filtered invoices:", error);
-    } finally {
-      setLoadingInvoices(false);
-    }
-  }, [
-    selectedPeriod,
-    customStart,
-    customEnd,
-    searchQuery,
-    selectedDate,
-    selectedMonth,
-    searchWorkType,
-    showOnlyUnpaid,
-  ]);
+    },
+    [
+      selectedPeriod,
+      customStart,
+      customEnd,
+      searchQuery,
+      selectedDate,
+      selectedMonth,
+      searchWorkType,
+      showOnlyUnpaid,
+    ],
+  );
 
   useEffect(() => {
     const today = new Date();
