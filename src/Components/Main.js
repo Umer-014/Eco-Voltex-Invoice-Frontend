@@ -5,6 +5,7 @@ import SavedInvoices from "./SavedInvoices";
 import QuoteCreate from "./Quotation/QuoteCreate";
 import SavedQuotes from "./Quotation/SavedQuotes";
 import Analytics from "./Analytics";
+import InvoiceArchive from "./InvoiceArchive";
 import Admin from "./Admin";
 import Login from "./Login";
 import { useAuth } from "../context/AuthContext";
@@ -96,6 +97,15 @@ const Main = () => {
             </li>
             <li className="navbar-item">
               <NavLink
+                to="/invoice-archive"
+                className="navbar-link"
+                onClick={closeMenu}
+              >
+                Invoice's PDF
+              </NavLink>
+            </li>
+            <li className="navbar-item">
+              <NavLink
                 to="/analytics"
                 className="navbar-link"
                 onClick={closeMenu}
@@ -127,6 +137,7 @@ const Main = () => {
           <Route path="/create-quote" element={<QuoteCreate />} />
           <Route path="/saved-quotes" element={<SavedQuotes />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/invoice-archive" element={<InvoiceArchive />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="*" element={<Navigate to="/create-invoice" replace />} />
         </Routes>
